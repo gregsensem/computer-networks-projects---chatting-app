@@ -1,0 +1,111 @@
+#ifndef GLOBAL_PA1
+#define GLOBAL_PA1
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <unistd.h>
+#include <iostream>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <string>
+#include <string.h> 
+#include <strings.h>
+#include <algorithm>
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#define GOOGLE_DNS "8.8.8.8"
+#define GOOGLE_DNS_PORT 53
+
+// namespace COMMON {
+enum Instructions{
+    AUTHOR,
+    IP,
+    PORT,
+    LIST,
+    STATISTICS,
+    BLOCKED,
+    LOGIN,
+    REFRESH,
+    SEND,
+    BROADCAST,
+    BLOCK,
+    UNBLOCK,
+    LOGOUT,
+    EXIT
+};
+
+
+extern std::unordered_map<std::string, Instructions> InstructionMap;
+
+//refered to stackoverflow solution of splitting string in c++
+std::vector<std::string> split(const std::string &text, char sep);
+
+void input_parser(char * cmd, std::vector<std::string> &cmd_str);
+
+void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs);
+
+void terminal_output_fail(std::string &str);
+
+std::string find_external_ip();
+
+void get_peer_ip(int socketfd, std::string &peer_ip_str, int &peer_port, std::string &peer_hostname);
+
+bool is_ip_valid(const std::string &ip_str);
+
+bool is_port_valid(const int &port);
+
+bool is_cmd_valid(const std::string &cmd);
+
+class Client
+{
+private:
+    int socketfd;
+    int port;
+    std::string ip;
+    std::string hostname;
+    std::string status;
+
+    int num_msgs_recv;
+    int num_msgs_sent;
+
+    std::unordered_set<std::string> block_list;
+    std::vector<std::string> msgs_recv;
+public:
+    Client();
+    Client(int socketfd_, std::string ip_, std::string hostname_, int port_, std::string status_ );
+
+    bool operator < (const Client& str) const;
+
+    void set_status(std::string status_);
+
+    std::string get_status();
+
+    std::string get_hostname();
+
+    std::string get_ip();
+
+    int get_port();
+};
+
+class ClientsList
+{
+private:
+    std::unordered_map<int,Client> clients_map;
+    std::vector<Client> clients_vector;
+    std::unordered_map<std::string, int> ip_to_fd;
+public:
+    void add(int fd,  Client client);
+
+    void sort_clients();
+
+    void display(std::vector<std::string> &terminal_outputs);
+};
+// }
+
+#endif

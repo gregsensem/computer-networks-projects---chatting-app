@@ -1,0 +1,18 @@
+[IP:SUCCESS]
+192.168.1.141
+[IP:END]
+[PORT:SUCCESS]
+9999
+[PORT:END]
+[LIST:SUCCESS]
+1          192.168.1.141             8888
+[LIST:END]
+[LIST:SUCCESS]
+1          192.168.1.141             7777
+2          192.168.1.141             8888
+[LIST:END]
+[LIST:SUCCESS]
+1          192.168.1.141             5555
+2          192.168.1.141             7777
+3          192.168.1.141             8888
+[LIST:END]
