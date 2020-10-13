@@ -22,27 +22,8 @@
  */
 
 #include "client.hpp"
-#include "common.hpp"
 
-#define TRUE 1
-#define CMD_SIZE 100
-#define MSG_SIZE 256
-#define BUFFER_SIZE 256
-int LOGIN_STATUS = 0;
-int server_fd = 0;
-
-int connect_to_host(std::string &server_ip, int server_port, int client_port);
-int recv_msg(int server_fd);
-
-
- /**
- * main function
- *
- * @param  argc Number of arguments
- * @param  argv The argument list
- * @return 0 EXIT_SUCCESS
- */
-int client(int port)
+int ClientHost::client_start()
 {
 
 	int server;
@@ -53,7 +34,7 @@ int client(int port)
 		fflush(stdout);
 
 		/*check if any new message from server*/
-		if(LOGIN_STATUS)
+		if(this->login_status)
 			recv_msg(server_fd);
 
 		/* Check if new command on STDIN */
@@ -139,15 +120,14 @@ int client(int port)
 					continue;										
 				}
 				
-				server_fd = connect_to_host(commands[1],host_port_num, port);
+				server_fd = connect_to_server(commands[1],host_port_num, port);
 				if(server_fd < 0)
 				{
 					std::cout << "failed to connect to server" << std::endl;
 					continue;
 				}
 
-				LOGIN_STATUS = 1;
-				std::cout << LOGIN_STATUS << std::endl;
+				this->login_status = 1;
 				break;
 			}
 
@@ -163,25 +143,10 @@ int client(int port)
 				break;
 			}
 		}
-
-		// printf("\nSENDing it to the remote server ... ");
-		// if(send(server, msg, strlen(msg), 0) == strlen(msg))
-		// 	printf("Done!\n");
-		// fflush(stdout);
-
-
-		// /* Initialize buffer to receieve response */
-        // char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-        // memset(buffer, '\0', BUFFER_SIZE);
-
-		// if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-		// 	printf("Server responded: %s", buffer);
-		// 	fflush(stdout);
-		// }
 	}
 }
 
-int connect_to_host(std::string &server_ip, int server_port, int client_port)
+int ClientHost::connect_to_server(std::string &server_ip, int server_port, int client_port)
 {
     int fdsocket, len;
     struct sockaddr_in remote_server_addr;
@@ -222,7 +187,7 @@ int connect_to_host(std::string &server_ip, int server_port, int client_port)
     return fdsocket;
 }
 
-int send_msg(int server_socketfd, const std::string &to_ip, const std::string &msg)
+int ClientHost::send_msg(int server_socketfd, const std::string &to_ip, const std::string &msg)
 {
 	const char *msg_cstr = msg.c_str();
 	int len = strlen(msg_cstr);
@@ -231,7 +196,7 @@ int send_msg(int server_socketfd, const std::string &to_ip, const std::string &m
 	return 0;
 }
 
-int recv_msg(int server_fd)
+int ClientHost::recv_msg(int server_fd)
 {
 	char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
 	memset(buffer, '\0', BUFFER_SIZE);
@@ -249,7 +214,7 @@ int recv_msg(int server_fd)
 	return 0;
 }
 
-int broadcase_msg()
+int broadcast_msg()
 {
 	return 0;
 }

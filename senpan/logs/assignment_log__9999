@@ -1,3 +1,40 @@
 [IP:SUCCESS]
 IP:192.168.1.141
 [IP:END]
+[AUTHOR:SUCCESS]
+I,senpan, have read and understood the course academic integrity policy.
+[AUTHOR:END]
+[IP:SUCCESS]
+IP:192.168.1.141
+[IP:END]
+[PORT:SUCCESS]
+PORT:9999
+[PORT:END]
+[AUTHOR:SUCCESS]
+I,senpan, have read and understood the course academic integrity policy.
+[AUTHOR:END]
+[LIST:SUCCESS]
+1                                       192.168.1.141       5555    
+2                                       192.168.1.141       7777    
+3                                       192.168.1.141       8888    
+[LIST:END]
+[IP:SUCCESS]
+IP:192.168.1.141
+[IP:END]
+[PORT:SUCCESS]
+PORT:9999
+[PORT:END]
+[AUTHOR:SUCCESS]
+I,senpan, have read and understood the course academic integrity policy.
+[AUTHOR:END]
+[LIST:SUCCESS]
+1                                       192.168.1.141       5555    
+2                                       192.168.1.141       7777    
+3                                       192.168.1.141       8888    
+[LIST:END]
+[IP:SUCCESS]
+IP:192.168.1.141
+[IP:END]
+[PORT:SUCCESS]
+PORT:9999
+[PORT:END]

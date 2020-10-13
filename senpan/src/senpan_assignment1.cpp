@@ -68,7 +68,8 @@ int main(int argc, char **argv)
 		server(local_port);
 	}else if(strncmp(argv[1],"c",1) == 0)
 	{
-		client(local_port);
+		ClientHost *client = new ClientHost(local_port);
+		client->client_start();
 	}else
 	{
 		std::cout << "invalid parameter for [c/s]" << std::endl;
