@@ -50,7 +50,7 @@ void input_parser(char * cmd, std::vector<std::string> &cmd_str);
 
 void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs);
 
-void terminal_output_fail(std::string &str);
+void terminal_output_fail(std::string &cmd);
 
 std::string find_external_ip();
 
@@ -61,6 +61,8 @@ bool is_ip_valid(const std::string &ip_str);
 bool is_port_valid(const int &port);
 
 bool is_cmd_valid(const std::string &cmd);
+
+int send_msg(std::string to_ip, int to_port, std::string msg);
 
 class Client
 {
@@ -104,7 +106,10 @@ public:
 
     void sort_clients();
 
-    void display(std::vector<std::string> &terminal_outputs);
+    void display_login_clients(std::vector<std::string> &terminal_outputs);
+
+    std::string get_clientslist_str();
+
 };
 // }
 

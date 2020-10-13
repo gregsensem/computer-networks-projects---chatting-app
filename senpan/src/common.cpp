@@ -47,12 +47,12 @@ void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs
         cse4589_print_and_log("%s\n", output.c_str());
     }
     cse4589_print_and_log("[%s:END]\n", cmd.c_str());
-    std::cout << std::endl;
 }
 
-void terminal_out_fail(std::string &str)
+void terminal_out_fail(std::string &cmd)
 {
-
+    cse4589_print_and_log("[%s:SUCCESS]\n", cmd.c_str());
+    cse4589_print_and_log("[%s:END]\n", cmd.c_str());
 }
 
 std::string find_external_ip()
@@ -161,6 +161,10 @@ bool is_cmd_valid(const std::string &cmd)
     }
 }
 
+int send_msg(std::string to_ip, int to_port, std::string msg)
+{
+}
+
 
 Client::Client(){};
 Client::Client(int socketfd_, std::string ip_, std::string hostname_, int port_, std::string status_ ) 
@@ -211,14 +215,32 @@ void ClientsList::sort_clients()
     std::sort(clients_vector.begin(),clients_vector.end());
 }
 
-void ClientsList::display(std::vector<std::string> &terminal_outputs)
+void ClientsList::display_login_clients(std::vector<std::string> &terminal_outputs)
 {
     int i = 1;
     sort_clients();
     for(auto it : clients_vector)
     {
-        std::string terminal_output = std::to_string(i++) + it.get_hostname() + "          " + it.get_ip() + "             " + std::to_string(it.get_port());
-        terminal_outputs.push_back(terminal_output);
+        if(it.get_status() == "LOGIN")
+        {
+            char buff[256];
+            int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-20s%-8d", i++, it.get_hostname().c_str(), it.get_ip().c_str(), it.get_port());
+            terminal_outputs.push_back(std::string(buff, buff_len));
+        }
     }
+}
+
+std::string ClientsList::get_clientslist_str()
+{
+    sort_clients();
+    std::string clientslist_str;
+    int i = 1;
+    for(auto it : clients_vector)
+    {
+        std::string client_str = std::to_string(i++)+ "|" + it.get_hostname() + "|" + it.get_ip() + "|" + std::to_string(it.get_port()) + "#";
+        clientslist_str += client_str;
+    }
+
+    return clientslist_str;
 }
 

@@ -1,6 +1,6 @@
 /**
  * @client
- * @author  Swetank Kumar Saha <swetankk@buffalo.edu>
+ * @author  Sen Pan <senpan@buffalo.edu>
  * @version 1.0
  *
  * @section LICENSE
@@ -28,8 +28,12 @@
 #define CMD_SIZE 100
 #define MSG_SIZE 256
 #define BUFFER_SIZE 256
+int LOGIN_STATUS = 0;
+int server_fd = 0;
 
 int connect_to_host(std::string &server_ip, int server_port, int client_port);
+int recv_msg(int server_fd);
+
 
  /**
  * main function
@@ -47,6 +51,10 @@ int client(int port)
 	while(TRUE){
 		printf("\n[PA1-Client@CSE489/589]$ ");
 		fflush(stdout);
+
+		/*check if any new message from server*/
+		if(LOGIN_STATUS)
+			recv_msg(server_fd);
 
 		/* Check if new command on STDIN */
 
@@ -92,7 +100,7 @@ int client(int port)
 			case IP:
 			{
 				terminal_outs.clear();
-				std::string terminal_out = find_external_ip();
+				std::string terminal_out = "IP:" + find_external_ip();
 				terminal_outs.push_back(terminal_out);
 				terminal_output_success(commands[0], terminal_outs);
 				break;
@@ -101,7 +109,7 @@ int client(int port)
 			case PORT:
 			{
 				terminal_outs.clear();
-				std::string terminal_out = std::to_string(port);
+				std::string terminal_out = "PORT:" + std::to_string(port);
 				terminal_outs.push_back(terminal_out);
 				terminal_output_success(commands[0], terminal_outs);
 				break;
@@ -131,13 +139,15 @@ int client(int port)
 					continue;										
 				}
 				
-				int client_socketfd = connect_to_host(commands[1],host_port_num, port);
-				if(client_socketfd < 0)
+				server_fd = connect_to_host(commands[1],host_port_num, port);
+				if(server_fd < 0)
 				{
 					std::cout << "failed to connect to server" << std::endl;
 					continue;
 				}
 
+				LOGIN_STATUS = 1;
+				std::cout << LOGIN_STATUS << std::endl;
 				break;
 			}
 
@@ -218,6 +228,24 @@ int send_msg(int server_socketfd, const std::string &to_ip, const std::string &m
 	int len = strlen(msg_cstr);
 
 	if(send(server_socketfd, msg_cstr, len, 0));
+	return 0;
+}
+
+int recv_msg(int server_fd)
+{
+	char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+	memset(buffer, '\0', BUFFER_SIZE);
+
+	if(recv(server_fd, buffer, BUFFER_SIZE, 0) >= 0){
+		printf("Server responded: %s", buffer);
+		fflush(stdout);
+	}else
+	{
+		printf("fail to reveive message from server");
+		fflush(stdout);
+		return -1;
+	}
+	
 	return 0;
 }
 

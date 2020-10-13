@@ -1,6 +1,6 @@
 /**
  * @server
- * @author  Swetank Kumar Saha <swetankk@buffalo.edu>
+ * @author  Sen Pan <senpan@buffalo.edu>
  * @version 1.0
  *
  * @section LICENSE
@@ -145,7 +145,7 @@ int server(int port)
                             case IP:
                             {
                                 terminal_outs.clear();
-                                std::string terminal_out = find_external_ip();
+                                std::string terminal_out = "IP:" + find_external_ip() ;
                                 terminal_outs.push_back(terminal_out);
                                 terminal_output_success(commands[0], terminal_outs);
                                 break;
@@ -154,7 +154,7 @@ int server(int port)
                             case PORT:
                             {
                                 terminal_outs.clear();
-                                std::string terminal_out = std::to_string(port);
+                                std::string terminal_out = "PORT:" + std::to_string(port);
                                 terminal_outs.push_back(terminal_out);
                                 terminal_output_success(commands[0], terminal_outs);
                                 break;
@@ -163,7 +163,7 @@ int server(int port)
                             case LIST:
                             {
                                 terminal_outs.clear();
-                                clints_list.display(terminal_outs);
+                                clints_list.display_login_clients(terminal_outs);
                                 terminal_output_success(commands[0], terminal_outs);
                                 break;
                             }
@@ -196,6 +196,16 @@ int server(int port)
                         Client client(fdaccept,new_client_ip, new_client_hostname, new_client_port, new_client_status);
                         /* Add the new client into ClientList */
                         clints_list.add(fdaccept, client);
+
+                        /* send the ClientList to the new client */
+                        std::string clientlists_str = clints_list.get_clientslist_str();
+                        std::cout << clientlists_str << std::endl;
+                        // char *clientslist_buff = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        // memset(clientslist_buff, '\0', BUFFER_SIZE);
+                        const char * clientslist_buff = clientlists_str.c_str();
+                        printf("Send clients list to new client ... ");
+                        if(send(fdaccept, clientslist_buff, strlen(clientslist_buff), 0) == strlen(clientslist_buff))
+                            printf("Done!\n");
                     }
                     /* Read from existing clients */
                     else{
