@@ -26,124 +26,171 @@
 int ClientHost::client_start()
 {
 
+	int head_socket, selret, sock_index, fdaccept=0;
+	int server_socket = -1;
+	fd_set master_list, watch_list;
+
+	/* Zero select FD sets */
+	FD_ZERO(&master_list);
+	FD_ZERO(&watch_list);
+	
+	/* Register STDIN */
+	FD_SET(STDIN, &master_list);
+
+	head_socket = STDIN;
+
 	int server;
 	// server = connect_to_host(argv[1], atoi(argv[2]));
-
+	
+	/* Check if we have sockets/STDIN to process */
 	while(TRUE){
 		printf("\n[PA1-Client@CSE489/589]$ ");
 		fflush(stdout);
 
-		/*check if any new message from server*/
-		if(this->login_status)
-			recv_msg(server_fd);
+		memcpy(&watch_list, &master_list, sizeof(master_list));
 
-		/* Check if new command on STDIN */
+		/* select() system call. This will BLOCK */
+		selret = select(head_socket + 1, &watch_list, NULL, NULL, NULL);
+		if(selret < 0)
+			perror("select failed.");
 
-		char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
+       	if(selret > 0){
+            /* Loop through socket descriptors to check which ones are ready */
+            for(sock_index=0; sock_index<=head_socket; sock_index+=1){
 
-		memset(cmd, '\0', CMD_SIZE);
-		if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
-			exit(-1);
-
-		// printf("\nI got: %s\n", cmd);
-		// int cmdint = atoi(cmd);
-
-		/*------------------Process PA1 commands here --------------------*/
-
-		/*Slipt input command string into tokens*/
-		std::vector<std::string> commands;
-		input_parser(cmd, commands);
-
-		/*check if command is valid*/
-		if(!is_cmd_valid(commands[0]))
-		{
-			std::cout << commands[0] << " : Invlid command!" << std::endl;
-			continue;
-		}
-
-		/* convert command string to command enum for switching */
-		Instructions command_enum = InstructionMap.at(commands[0]);
-
-		/* declare terminal outputs vector */
-		std::vector<std::string> terminal_outs;
-
-		/*switch into corresponding commands*/
-		switch(command_enum){
-			case AUTHOR:
-			{
-				terminal_outs.clear();
-				std::string terminal_out = "I,senpan, have read and understood the course academic integrity policy.";
-				terminal_outs.push_back(terminal_out);
-				terminal_output_success(commands[0], terminal_outs);
-				break;
-			}
-
-			case IP:
-			{
-				terminal_outs.clear();
-				std::string terminal_out = "IP:" + find_external_ip();
-				terminal_outs.push_back(terminal_out);
-				terminal_output_success(commands[0], terminal_outs);
-				break;
-			}
-
-			case PORT:
-			{
-				terminal_outs.clear();
-				std::string terminal_out = "PORT:" + std::to_string(port);
-				terminal_outs.push_back(terminal_out);
-				terminal_output_success(commands[0], terminal_outs);
-				break;
-			}
-
-			case LOGIN:
-			{	
-				/* check size of commands */
-				if(commands.size() != 3)
-				{
-					std::cout << "invalid parameter!" << std::endl;
-					continue;
-				}
+                if(FD_ISSET(sock_index, &watch_list)){
 				
-				/* check if ip address is valid */
-				if(!is_ip_valid(commands[1]))
-				{
-					std::cout << "invalid ip address!" << std::endl;
-					continue;										
-				}
+					 /* Check if new command on STDIN */
+                    if (sock_index == STDIN){
+						
+						char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
+						memset(cmd, '\0', CMD_SIZE);
+						if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
+							exit(-1);
 
-				/* check if ip address is valid */
-				int host_port_num = std::stoi(commands[2]);
-				if(!is_port_valid(host_port_num))
-				{
-					std::cout << "invalid ip address!" << std::endl;
-					continue;										
-				}
-				
-				server_fd = connect_to_server(commands[1],host_port_num, port);
-				if(server_fd < 0)
-				{
-					std::cout << "failed to connect to server" << std::endl;
-					continue;
-				}
+						// printf("\nI got: %s\n", cmd);
+						// int cmdint = atoi(cmd);
 
-				this->login_status = 1;
-				break;
-			}
+						/*------------------Process PA1 commands here --------------------*/
 
-			case LOGOUT:
-			{
+						/*Slipt input command string into tokens*/
+						std::vector<std::string> commands;
+						input_parser(cmd, commands);
 
-				break;
-			}
+						/*check if command is valid*/
+						if(!is_cmd_valid(commands[0]))
+						{
+							std::cout << commands[0] << " : Invlid command!" << std::endl;
+							continue;
+						}
 
-			case EXIT:
-			{
+						/* convert command string to command enum for switching */
+						Instructions command_enum = InstructionMap.at(commands[0]);
 
-				break;
-			}
-		}
-	}
+						/* declare terminal outputs vector */
+						std::vector<std::string> terminal_outs;
+
+						/*switch into corresponding commands*/
+						switch(command_enum){
+							case AUTHOR:
+							{
+								terminal_outs.clear();
+								std::string terminal_out = "I,senpan, have read and understood the course academic integrity policy.";
+								terminal_outs.push_back(terminal_out);
+								terminal_output_success(commands[0], terminal_outs);
+								break;
+							}
+
+							case IP:
+							{
+								terminal_outs.clear();
+								std::string terminal_out = "IP:" + find_external_ip();
+								terminal_outs.push_back(terminal_out);
+								terminal_output_success(commands[0], terminal_outs);
+								break;
+							}
+
+							case PORT:
+							{
+								terminal_outs.clear();
+								std::string terminal_out = "PORT:" + std::to_string(port);
+								terminal_outs.push_back(terminal_out);
+								terminal_output_success(commands[0], terminal_outs);
+								break;
+							}
+
+							case LOGIN:
+							{	
+								/* check size of commands */
+								if(commands.size() != 3)
+								{
+									std::cout << "invalid parameter!" << std::endl;
+									continue;
+								}
+								
+								/* check if ip address is valid */
+								if(!is_ip_valid(commands[1]))
+								{
+									std::cout << "invalid ip address!" << std::endl;
+									continue;										
+								}
+
+								/* check if ip address is valid */
+								int host_port_num = std::stoi(commands[2]);
+								if(!is_port_valid(host_port_num))
+								{
+									std::cout << "invalid ip address!" << std::endl;
+									continue;										
+								}
+								
+								this->server_fd = connect_to_server(commands[1],host_port_num, port);
+								if(this->server_fd < 0)
+								{
+									std::cout << "failed to connect to server" << std::endl;
+									continue;
+								}
+
+								/* Register the listening socket */
+								FD_SET(this->server_fd, &master_list);
+								head_socket = this->server_fd;
+								
+								/*change login status*/
+								this->login_status = 1;
+
+								/*out put status to terminal*/
+								terminal_outs.clear();
+								terminal_output_success(commands[0],terminal_outs);
+								break;
+							}
+
+							case LOGOUT:
+							{
+
+								break;
+							}
+
+							case EXIT:
+							{
+
+								break;
+							}
+						}//end of switch
+						
+					}else if(sock_index == this->server_fd)
+					{
+						/*check if any new message from server*/
+						this->recv_msg(this->server_fd);
+					}
+					else
+					{
+						
+					}
+
+				}//End of checking socket_index
+			}//End of for loop of chcking socket index
+		}//End of select positive
+
+	}//end of while loop
 }
 
 int ClientHost::connect_to_server(std::string &server_ip, int server_port, int client_port)
@@ -214,7 +261,7 @@ int ClientHost::recv_msg(int server_fd)
 	return 0;
 }
 
-int broadcast_msg()
+int ClientHost::broadcast_msg()
 {
 	return 0;
 }
