@@ -33,6 +33,7 @@ enum Instructions{
     LOGIN,
     REFRESH,
     SEND,
+    SENDHSTNAM,
     BROADCAST,
     BLOCK,
     UNBLOCK,
@@ -46,7 +47,11 @@ extern std::unordered_map<std::string, Instructions> InstructionMap;
 //refered to stackoverflow solution of splitting string in c++
 std::vector<std::string> split(const std::string &text, char sep);
 
-void input_parser(char * cmd, std::vector<std::string> &cmd_str);
+void cmd_parser(char * cmd, std::vector<std::string> &cmd_str);
+
+void cmd_first_msg_parser(char *cmd, std::string &msgs);
+
+void cmd_sec_msg_parser(char *cmd, std::string &msgs);
 
 void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs);
 
@@ -56,13 +61,15 @@ std::string find_external_ip();
 
 void get_peer_ip(int socketfd, std::string &peer_ip_str, int &peer_port, std::string &peer_hostname);
 
+void get_local_hostname(std::string &hostname);
+
 bool is_ip_valid(const std::string &ip_str);
 
 bool is_port_valid(const int &port);
 
 bool is_cmd_valid(const std::string &cmd);
 
-int send_msg(std::string to_ip, int to_port, std::string msg);
+int send_msg(int server_socketfd, const std::string &msg);
 
 class Client
 {
@@ -80,7 +87,7 @@ private:
     std::vector<std::string> msgs_recv;
 public:
     Client();
-    Client(int socketfd_, std::string ip_, std::string hostname_, int port_, std::string status_ );
+    Client(int socketfd_, std::string ip_, int port_, std::string status_ );
 
     bool operator < (const Client& str) const;
 
@@ -89,6 +96,8 @@ public:
     std::string get_status();
 
     std::string get_hostname();
+
+    void set_hostname(std::string hostname_);
 
     std::string get_ip();
 
@@ -109,6 +118,10 @@ public:
     void display_login_clients(std::vector<std::string> &terminal_outputs);
 
     std::string get_clientslist_str();
+
+    Client& get_client_by_fd(int fd);
+
+    int get_fd_by_ip(std::string ip);
 
 };
 // }

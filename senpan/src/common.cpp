@@ -10,6 +10,9 @@ std::unordered_map<std::string, Instructions> InstructionMap =
     {"PORT", Instructions::PORT},
     {"LIST", Instructions::LIST},
     {"LOGIN", Instructions::LOGIN},
+    {"SEND", Instructions::SEND},
+    {"SENDHSTNAM", Instructions::SENDHSTNAM},
+    {"BROADCAST", Instructions::BROADCAST},
     {"LOGOUT", Instructions::LOGOUT},
     {"EXIT", Instructions::EXIT}
 };
@@ -26,7 +29,7 @@ std::vector<std::string> split(const std::string &text, char sep) {
   return tokens;
 }
 
-void input_parser(char * cmd, std::vector<std::string> &cmd_str)
+void cmd_parser(char * cmd, std::vector<std::string> &cmd_str)
 {
     std::string s(cmd);
     //remove the newline character at the end of the line
@@ -34,6 +37,48 @@ void input_parser(char * cmd, std::vector<std::string> &cmd_str)
         s.erase(s.length()-1);
 
     cmd_str = split(s, ' ');
+}
+
+void cmd_first_msg_parser(char *cmd, std::string &msgs)
+{
+    std::string s(cmd);
+    //remove the newline character at the end of the line
+    if (!s.empty() && s[s.length()-1] == '\n') 
+        s.erase(s.length()-1);
+    
+    //find the first space, then the rest of the string are the messages to be sent
+    std::size_t start = 0, end = 0;
+    int count = 0;
+    char sep = ' ';
+    while ((end = s.find(sep, start)) != std::string::npos) {
+        if(count == 1){
+            msgs = s.substr(start, std::string::npos);
+            return;
+        }
+        count++;
+        start = end + 1;
+    }
+}
+
+void cmd_sec_msg_parser(char *cmd, std::string &msgs)
+{
+    std::string s(cmd);
+    //remove the newline character at the end of the line
+    if (!s.empty() && s[s.length()-1] == '\n') 
+        s.erase(s.length()-1);
+    
+    //find the second space, then the rest of the string are the messages to be sent
+    std::size_t start = 0, end = 0;
+    int count = 0;
+    char sep = ' ';
+    while ((end = s.find(sep, start)) != std::string::npos) {
+        if(count == 2){
+            msgs = s.substr(start, std::string::npos);
+            return;
+        }
+        count++;
+        start = end + 1;
+    }
 }
 
 void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs)
@@ -139,6 +184,16 @@ void get_peer_ip(int socketfd, std::string &peer_ip_str, int &peer_port, std::st
     // }
 }
 
+void get_local_hostname(std::string &hostname)
+{
+    char host_string[NI_MAXHOST];
+    if(gethostname(host_string, sizeof(host_string)) != 0)
+    {
+        std::cout << "error" <<std::endl;
+    }
+    hostname = std::string(host_string);
+}
+
 bool is_ip_valid(const std::string &ip_str)
 {
     struct sockaddr_in ip_net;
@@ -161,14 +216,18 @@ bool is_cmd_valid(const std::string &cmd)
     }
 }
 
-int send_msg(std::string to_ip, int to_port, std::string msg)
+int send_msg(int server_socketfd, const std::string &msg)
 {
+	const char *msg_cstr = msg.c_str();
+	int len = strlen(msg_cstr);
+
+	if(send(server_socketfd, msg_cstr, len, 0));
+	return 0;
 }
 
-
 Client::Client(){};
-Client::Client(int socketfd_, std::string ip_, std::string hostname_, int port_, std::string status_ ) 
-: socketfd(socketfd_), ip(ip_), hostname(hostname_), port(port_), status(status_)
+Client::Client(int socketfd_, std::string ip_, int port_, std::string status_ ) 
+: socketfd(socketfd_), ip(ip_), port(port_), status(status_)
 {
     // std::cout << "New client :" << ip << "login!" << std::endl;
 };
@@ -193,6 +252,11 @@ std::string Client::get_hostname()
     return hostname;
 }
 
+void Client::set_hostname(std::string hostname_)
+{
+    this->hostname = hostname_;
+}
+
 std::string Client::get_ip()
 {
     return ip;
@@ -207,6 +271,8 @@ int Client::get_port()
 void ClientsList::add(int fd,  Client client)
 {
     clients_map[fd]=client;
+    ip_to_fd[client.get_ip()] = fd;
+
     clients_vector.push_back(client);
 }
 
@@ -219,12 +285,23 @@ void ClientsList::display_login_clients(std::vector<std::string> &terminal_outpu
 {
     int i = 1;
     sort_clients();
-    for(auto it : clients_vector)
+
+    std::vector<Client> clients_vec;
+    for(auto it : this->clients_map)
+    {
+        clients_vec.push_back(it.second);
+    }
+
+    std::sort(clients_vec.begin(),clients_vec.end());
+
+    for(auto it : clients_vec)
     {
         if(it.get_status() == "LOGIN")
         {
             char buff[256];
-            int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-20s%-8d", i++, it.get_hostname().c_str(), it.get_ip().c_str(), it.get_port());
+            int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-20s%-8d", i++, it.get_hostname().c_str(), 
+                                it.get_ip().c_str(), it.get_port());
+
             terminal_outputs.push_back(std::string(buff, buff_len));
         }
     }
@@ -232,10 +309,17 @@ void ClientsList::display_login_clients(std::vector<std::string> &terminal_outpu
 
 std::string ClientsList::get_clientslist_str()
 {
-    sort_clients();
+    std::vector<Client> clients_vec;
+    for(auto it : this->clients_map)
+    {
+        clients_vec.push_back(it.second);
+    }
+
+    std::sort(clients_vec.begin(),clients_vec.end());
+    
     std::string clientslist_str;
     int i = 1;
-    for(auto it : clients_vector)
+    for(auto it : clients_vec)
     {
         std::string client_str = std::to_string(i++)+ "|" + it.get_hostname() + "|" + it.get_ip() + "|" + std::to_string(it.get_port()) + "#";
         clientslist_str += client_str;
@@ -244,3 +328,13 @@ std::string ClientsList::get_clientslist_str()
     return clientslist_str;
 }
 
+Client& ClientsList::get_client_by_fd(int fd)
+{
+    clients_map[fd].set_hostname("XXX");
+    return clients_map[fd];
+}
+
+int ClientsList::get_fd_by_ip(std::string ip)
+{
+    return ip_to_fd[ip];
+}

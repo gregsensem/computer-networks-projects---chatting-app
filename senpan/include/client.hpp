@@ -22,7 +22,7 @@ ClientHost(int port_) : port(port_), login_status(0) {};
 
 int client_start();
 int connect_to_server(std::string &server_ip, int server_port, int client_port);
-int send_msg(int server_socketfd, const std::string &to_ip, const std::string &msg);
+int send_msg(int server_socketfd, const std::string &msg);
 int recv_msg(int server_fd);
 int broadcast_msg();
 

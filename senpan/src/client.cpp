@@ -75,7 +75,7 @@ int ClientHost::client_start()
 
 						/*Slipt input command string into tokens*/
 						std::vector<std::string> commands;
-						input_parser(cmd, commands);
+						cmd_parser(cmd, commands);
 
 						/*check if command is valid*/
 						if(!is_cmd_valid(commands[0]))
@@ -157,12 +157,37 @@ int ClientHost::client_start()
 								/*change login status*/
 								this->login_status = 1;
 
+								/*send host name to server*/
+								std::string localhostname;
+								get_local_hostname(localhostname);
+								std::string cmd_msgs = "SENDHSTNAM ";
+								send_msg(this->server_fd, cmd_msgs+localhostname);
+
 								/*out put status to terminal*/
 								terminal_outs.clear();
 								terminal_output_success(commands[0],terminal_outs);
 								break;
 							}
 
+							case SEND:
+							{
+								if(commands.size() < 2)
+								{
+									std::cout << "No IP address found, please input IP address of the receiver!" << std::endl;
+									continue;
+								}
+								else if(commands.size() < 3)
+								{
+									std::cout << "No messages to send, please input messages after SEND command!" << std::endl;
+									continue;
+								}
+								
+								// std::string msgs;
+								// cmd_msg_parser(cmd, msgs);
+								send_msg(this->server_fd, std::string(cmd));
+
+								break;
+							}
 							case LOGOUT:
 							{
 
@@ -234,7 +259,7 @@ int ClientHost::connect_to_server(std::string &server_ip, int server_port, int c
     return fdsocket;
 }
 
-int ClientHost::send_msg(int server_socketfd, const std::string &to_ip, const std::string &msg)
+int ClientHost::send_msg(int server_socketfd, const std::string &msg)
 {
 	const char *msg_cstr = msg.c_str();
 	int len = strlen(msg_cstr);
