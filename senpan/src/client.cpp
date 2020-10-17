@@ -119,6 +119,33 @@ int ClientHost::client_start()
 								break;
 							}
 
+							case LIST:
+							{
+								terminal_outs.clear();
+								int i = 1;
+
+								/*sort local clients map using vector*/
+								std::vector<Client> local_clients_vec;
+								for(auto it : this->local_clients_map)
+								{
+									local_clients_vec.push_back(it.second);
+								}
+
+								std::sort(local_clients_vec.begin(),local_clients_vec.end());
+
+								for(auto local_clients : local_clients_vec)
+								{
+									char buff[256];
+									int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-20s%-8d", i++, local_clients.get_hostname().c_str(), 
+									local_clients.get_ip().c_str(), local_clients.get_port());
+
+            						terminal_outs.push_back(std::string(buff, buff_len));
+								}
+								terminal_output_success(commands[0], terminal_outs);
+
+								break;
+							}
+
 							case LOGIN:
 							{	
 								/* check size of commands */
@@ -165,6 +192,7 @@ int ClientHost::client_start()
 
 								/*out put status to terminal*/
 								terminal_outs.clear();
+								
 								terminal_output_success(commands[0],terminal_outs);
 								break;
 							}
@@ -188,6 +216,13 @@ int ClientHost::client_start()
 
 								break;
 							}
+							
+							case REFRESH:
+							{
+								this->send_msg(this->server_fd, commands[0]);
+								break;
+							}
+
 							case LOGOUT:
 							{
 
@@ -204,7 +239,36 @@ int ClientHost::client_start()
 					}else if(sock_index == this->server_fd)
 					{
 						/*check if any new message from server*/
-						this->recv_msg(this->server_fd);
+						std::string msgs_recvd;
+						this->recv_msg(this->server_fd, msgs_recvd);
+						/*Slipt input command string into tokens*/
+						std::vector<std::string> commands;
+						commands.clear();
+						cmd_parser(msgs_recvd.c_str(), commands);
+
+						/*check if command is valid*/
+						if(!is_cmd_valid(commands[0]))
+						{
+							std::cout << commands[0] << " : Invlid command from server!" << std::endl;
+							continue;
+						}
+
+						/* convert command string to command enum for switching */
+						Instructions command_enum = InstructionMap.at(commands[0]);
+
+						/* declare terminal outputs vector */
+						std::vector<std::string> terminal_outs;
+
+						/*switch into corresponding commands*/
+						switch(command_enum)
+						{
+							case REFRESH:
+							{
+								std::cout << "Refresh this from server:" << msgs_recvd << std::endl;
+								update_local_clients_map(msgs_recvd);
+								break;
+							}
+						}
 					}
 					else
 					{
@@ -268,12 +332,13 @@ int ClientHost::send_msg(int server_socketfd, const std::string &msg)
 	return 0;
 }
 
-int ClientHost::recv_msg(int server_fd)
+int ClientHost::recv_msg(int server_fd, std::string &msgs_recvd)
 {
 	char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
 	memset(buffer, '\0', BUFFER_SIZE);
 
 	if(recv(server_fd, buffer, BUFFER_SIZE, 0) >= 0){
+		msgs_recvd = std::string(buffer);
 		printf("Server responded: %s", buffer);
 		fflush(stdout);
 	}else
@@ -289,4 +354,46 @@ int ClientHost::recv_msg(int server_fd)
 int ClientHost::broadcast_msg()
 {
 	return 0;
+}
+
+void ClientHost::update_local_clients_map(std::string clientslist_str)
+{
+	local_clients_map.clear();
+	std::vector<std::string> clients;
+	clients = this->split(clientslist_str, ' ');
+	std::cout << clients.size() << std::endl;
+
+	for(auto c : clients)
+	{
+		std::cout << c << std::endl;
+	}
+
+	// for(int i = 1; i < clients.size()-1; i++)
+	// {
+	// 	std::vector<std::string> client_info = this->split(clients[i], '|');
+	// 	/*create a new local client*/
+	// 	std::cout << client_info.size() << std::endl;
+	// 	std::cout << client_info[0] << "\t" << client_info[1] << "\t" <<client_info[2] << std::endl;
+	// }
+
+	for(int i = 1; i < clients.size()-1; i++)
+	{
+		std::vector<std::string> client_info = this->split(clients[i], '|');
+		/*create a new local client*/
+		Client local_client(NULL,client_info[1],std::stoi(client_info[2]),"LOGIN");
+		local_client.set_hostname(client_info[0]);
+		/*add new local client to local client map*/
+		local_clients_map[client_info[1]+client_info[2]] = local_client;
+	}
+}
+
+std::vector<std::string> ClientHost::split(const std::string &text, char sep) {
+  std::vector<std::string> tokens;
+  std::size_t start = 0, end = 0;
+  while ((end = text.find(sep, start)) != std::string::npos) {
+    tokens.push_back(text.substr(start, end - start));
+    start = end + 1;
+  }
+  tokens.push_back(text.substr(start));
+  return tokens;
 }

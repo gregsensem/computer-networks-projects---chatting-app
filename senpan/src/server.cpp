@@ -199,14 +199,14 @@ int server(int port)
                         /* Add the new client into ClientList */
                         clients_list.add(fdaccept, client);
 
-                        /* send the ClientList to the new client */
-                        std::string clientlists_str = clients_list.get_clientslist_str();
-                        // char *clientslist_buff = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-                        // memset(clientslist_buff, '\0', BUFFER_SIZE);
-                        const char * clientslist_buff = clientlists_str.c_str();
-                        printf("Send clients list to new client ... \n");
-                        if(send(fdaccept, clientslist_buff, strlen(clientslist_buff), 0) == strlen(clientslist_buff))
-                            printf("Done!\n");
+                        // /* send the ClientList to the new client */
+                        // std::string clientlists_str = clients_list.get_clientslist_str();
+                        // // char *clientslist_buff = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        // // memset(clientslist_buff, '\0', BUFFER_SIZE);
+                        // const char * clientslist_buff = clientlists_str.c_str();
+                        // printf("Send clients list to new client ... \n");
+                        // if(send(fdaccept, clientslist_buff, strlen(clientslist_buff), 0) == strlen(clientslist_buff))
+                        //     printf("Done!\n");
                     }
                     /* Read from existing clients */
                     else{
@@ -256,8 +256,14 @@ int server(int port)
                                     Client& c = clients_list.get_client_by_fd(sock_index);
                                     std::cout << client_msgs[1] << std::endl; 
                                     c.set_hostname(client_msgs[1]);
-                                    std::cout << "updated client hostname!" << std::endl;
+                                    std::cout << "Received and updated client hostname!" << std::endl;
                                     std::cout << c.get_hostname() << std::endl;
+
+                                    /*send the updated clients list back to client*/
+                                    std::string login_clients = "REFRESH " + clients_list.get_clientslist_str();
+                                    send_msg(sock_index, login_clients);
+                                    std::cout << "Sent updated clients list to new client!" << std::endl;
+
                                     break;
                                 }
 
@@ -274,6 +280,9 @@ int server(int port)
 
                                 case REFRESH:
                                 {
+                                    std::string login_clients = "REFRESH " + clients_list.get_clientslist_str();
+                                    send_msg(sock_index, login_clients);
+
                                     break;
                                 }
                             }

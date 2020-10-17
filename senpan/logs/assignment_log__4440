@@ -1,0 +1,18 @@
+[LOGIN:SUCCESS]
+[LOGIN:END]
+[LIST:SUCCESS]
+1    peter-HP-Z440-Workstation          192.168.1.141       4440    
+2    peter-HP-Z440-Workstation          192.168.1.141       4448    
+3    peter-HP-Z440-Workstation          192.168.1.141       7766    
+[LIST:END]
+[IP:SUCCESS]
+IP:192.168.1.141
+[IP:END]
+[AUTHOR:SUCCESS]
+I,senpan, have read and understood the course academic integrity policy.
+[AUTHOR:END]
+[LIST:SUCCESS]
+1    peter-HP-Z440-Workstation          192.168.1.141       4440    
+2    peter-HP-Z440-Workstation          192.168.1.141       4448    
+3    peter-HP-Z440-Workstation          192.168.1.141       7766    
+[LIST:END]

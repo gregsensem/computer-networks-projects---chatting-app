@@ -47,7 +47,7 @@ extern std::unordered_map<std::string, Instructions> InstructionMap;
 //refered to stackoverflow solution of splitting string in c++
 std::vector<std::string> split(const std::string &text, char sep);
 
-void cmd_parser(char * cmd, std::vector<std::string> &cmd_str);
+void cmd_parser(const char * cmd, std::vector<std::string> &cmd_str);
 
 void cmd_first_msg_parser(char *cmd, std::string &msgs);
 

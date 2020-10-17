@@ -9,10 +9,15 @@ std::unordered_map<std::string, Instructions> InstructionMap =
     {"IP", Instructions::IP},
     {"PORT", Instructions::PORT},
     {"LIST", Instructions::LIST},
+    {"STATISTICS", Instructions::STATISTICS},
+    {"BLOCKED", Instructions::BLOCKED},
     {"LOGIN", Instructions::LOGIN},
+    {"REFRESH", Instructions::REFRESH},
     {"SEND", Instructions::SEND},
     {"SENDHSTNAM", Instructions::SENDHSTNAM},
     {"BROADCAST", Instructions::BROADCAST},
+    {"BLOCK", Instructions::BLOCK},
+    {"UNBLOCK", Instructions::UNBLOCK},
     {"LOGOUT", Instructions::LOGOUT},
     {"EXIT", Instructions::EXIT}
 };
@@ -29,7 +34,7 @@ std::vector<std::string> split(const std::string &text, char sep) {
   return tokens;
 }
 
-void cmd_parser(char * cmd, std::vector<std::string> &cmd_str)
+void cmd_parser(const char * cmd, std::vector<std::string> &cmd_str)
 {
     std::string s(cmd);
     //remove the newline character at the end of the line
@@ -309,6 +314,8 @@ void ClientsList::display_login_clients(std::vector<std::string> &terminal_outpu
 
 std::string ClientsList::get_clientslist_str()
 {
+    std::string clientslist_str;
+
     std::vector<Client> clients_vec;
     for(auto it : this->clients_map)
     {
@@ -316,13 +323,14 @@ std::string ClientsList::get_clientslist_str()
     }
 
     std::sort(clients_vec.begin(),clients_vec.end());
-    
-    std::string clientslist_str;
-    int i = 1;
+
     for(auto it : clients_vec)
     {
-        std::string client_str = std::to_string(i++)+ "|" + it.get_hostname() + "|" + it.get_ip() + "|" + std::to_string(it.get_port()) + "#";
-        clientslist_str += client_str;
+        if(it.get_status() == "LOGIN")
+        {
+            std::string client_str = it.get_hostname() + '|' + it.get_ip() + '|' + std::to_string(it.get_port()) + ' ';
+            clientslist_str += client_str;
+        }
     }
 
     return clientslist_str;
@@ -330,7 +338,6 @@ std::string ClientsList::get_clientslist_str()
 
 Client& ClientsList::get_client_by_fd(int fd)
 {
-    clients_map[fd].set_hostname("XXX");
     return clients_map[fd];
 }
 
