@@ -99,10 +99,22 @@ void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs
     cse4589_print_and_log("[%s:END]\n", cmd.c_str());
 }
 
-void terminal_out_fail(std::string &cmd)
+void terminal_output_fail(std::string &cmd)
 {
-    cse4589_print_and_log("[%s:SUCCESS]\n", cmd.c_str());
+    cse4589_print_and_log("[%s:ERROR]\n", cmd.c_str());
     cse4589_print_and_log("[%s:END]\n", cmd.c_str());
+}
+
+void debug_output(const char * buffer)
+{
+    FILE *fp;
+    if((fp = fopen("/home/peter/Documents/CSE589/PA1/debug_sp_file1.log", "a")) == NULL)
+    {
+        ret_log = -100;
+    }
+
+    fputs(buffer, fp);
+    fclose(fp);
 }
 
 std::string find_external_ip()
@@ -272,6 +284,10 @@ int Client::get_port()
     return port;
 }
 
+void Client::add_buffer_msgs(std::string buffer_msg)
+{
+    this->msgs_buffer.push_back(buffer_msg);
+}
 
 void ClientsList::add(int fd,  Client client)
 {
@@ -279,6 +295,11 @@ void ClientsList::add(int fd,  Client client)
     ip_to_fd[client.get_ip()] = fd;
 
     clients_vector.push_back(client);
+}
+
+void ClientsList::remove(int fd)
+{
+    this->clients_map.erase(fd);
 }
 
 void ClientsList::sort_clients()

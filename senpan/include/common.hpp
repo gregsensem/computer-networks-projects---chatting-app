@@ -57,6 +57,8 @@ void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs
 
 void terminal_output_fail(std::string &cmd);
 
+void debug_output(const char * buffer);
+
 std::string find_external_ip();
 
 void get_peer_ip(int socketfd, std::string &peer_ip_str, int &peer_port, std::string &peer_hostname);
@@ -84,7 +86,7 @@ private:
     int num_msgs_sent;
 
     std::unordered_set<std::string> block_list;
-    std::vector<std::string> msgs_recv;
+    std::vector<std::string> msgs_buffer;
 public:
     Client();
     Client(int socketfd_, std::string ip_, int port_, std::string status_ );
@@ -102,6 +104,9 @@ public:
     std::string get_ip();
 
     int get_port();
+
+    void add_buffer_msgs(std::string buffer_msg);
+
 };
 
 class ClientsList
@@ -112,6 +117,8 @@ private:
     std::unordered_map<std::string, int> ip_to_fd;
 public:
     void add(int fd,  Client client);
+
+    void remove(int fd);
 
     void sort_clients();
 

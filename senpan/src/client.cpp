@@ -44,6 +44,10 @@ int ClientHost::client_start()
 	
 	/* Check if we have sockets/STDIN to process */
 	while(TRUE){
+		/*check if EXIT command is executed*/
+		if(this->exit_status)
+			return 0;
+
 		printf("\n[PA1-Client@CSE489/589]$ ");
 		fflush(stdout);
 
@@ -77,9 +81,13 @@ int ClientHost::client_start()
 						std::vector<std::string> commands;
 						cmd_parser(cmd, commands);
 
+						/*put a copy of cmd by debug*/
+						debug_output(cmd);
+
 						/*check if command is valid*/
 						if(!is_cmd_valid(commands[0]))
 						{
+
 							std::cout << commands[0] << " : Invlid command!" << std::endl;
 							continue;
 						}
@@ -95,9 +103,10 @@ int ClientHost::client_start()
 							case AUTHOR:
 							{
 								terminal_outs.clear();
-								std::string terminal_out = "I,senpan, have read and understood the course academic integrity policy.";
+								std::string terminal_out = "I, senpan, have read and understood the course academic integrity policy.";
 								terminal_outs.push_back(terminal_out);
 								terminal_output_success(commands[0], terminal_outs);
+
 								break;
 							}
 
@@ -107,6 +116,7 @@ int ClientHost::client_start()
 								std::string terminal_out = "IP:" + find_external_ip();
 								terminal_outs.push_back(terminal_out);
 								terminal_output_success(commands[0], terminal_outs);
+
 								break;
 							}
 
@@ -116,6 +126,7 @@ int ClientHost::client_start()
 								std::string terminal_out = "PORT:" + std::to_string(port);
 								terminal_outs.push_back(terminal_out);
 								terminal_output_success(commands[0], terminal_outs);
+
 								break;
 							}
 
@@ -149,9 +160,11 @@ int ClientHost::client_start()
 							case LOGIN:
 							{	
 								/* check size of commands */
+
 								if(commands.size() != 3)
 								{
 									std::cout << "invalid parameter!" << std::endl;
+									terminal_output_fail(commands[0]);
 									continue;
 								}
 								
@@ -159,21 +172,43 @@ int ClientHost::client_start()
 								if(!is_ip_valid(commands[1]))
 								{
 									std::cout << "invalid ip address!" << std::endl;
+									terminal_output_fail(commands[0]);
 									continue;										
 								}
 
-								/* check if ip address is valid */
+								/* check if PORT is valid */
+
+								char* p;
+								long converted = strtol(commands[2].c_str(), &p, 10);
+								if (*p) 
+								{
+									// conversion failed because the input wasn't a number
+									std::cout << "invalid port number!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;	
+								}
+
 								int host_port_num = std::stoi(commands[2]);
 								if(!is_port_valid(host_port_num))
 								{
-									std::cout << "invalid ip address!" << std::endl;
+									std::cout << "invalid port number!" << std::endl;
+									terminal_output_fail(commands[0]);
 									continue;										
+								}
+
+								/*check if the client is already logged in*/
+								if(this->login_status == 1)
+								{
+									std::cout << "Already logged in!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
 								}
 								
 								this->server_fd = connect_to_server(commands[1],host_port_num, port);
 								if(this->server_fd < 0)
 								{
 									std::cout << "failed to connect to server" << std::endl;
+									terminal_output_fail(commands[0]);
 									continue;
 								}
 
@@ -192,21 +227,31 @@ int ClientHost::client_start()
 
 								/*out put status to terminal*/
 								terminal_outs.clear();
-								
 								terminal_output_success(commands[0],terminal_outs);
+
 								break;
 							}
 
 							case SEND:
 							{
+								/*check if the client has logged in */
+								if(this->login_status != 1)
+								{
+									std::cout << "please login first!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
 								if(commands.size() < 2)
 								{
 									std::cout << "No IP address found, please input IP address of the receiver!" << std::endl;
+									terminal_output_fail(commands[0]);
 									continue;
 								}
 								else if(commands.size() < 3)
 								{
 									std::cout << "No messages to send, please input messages after SEND command!" << std::endl;
+									terminal_output_fail(commands[0]);
 									continue;
 								}
 								
@@ -216,21 +261,93 @@ int ClientHost::client_start()
 
 								break;
 							}
+
+							case BROADCAST:
+							{
+								/*check if the client has logged in */
+								if(this->login_status != 1)
+								{
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								break;
+							}
 							
 							case REFRESH:
 							{
+								/*check if the client has logged in */
+								if(this->login_status != 1)
+								{
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
 								this->send_msg(this->server_fd, commands[0]);
+
 								break;
 							}
 
 							case LOGOUT:
 							{
+								/*check if the client has logged in */
+								if(this->login_status != 1)
+								{
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								this->send_msg(this->server_fd, commands[0]);
+								usleep(1000);
+								this->login_status = 0;
+								FD_CLR(this->server_fd, &master_list);
+								close(this->server_fd);
+
+								/*out put status to terminal*/
+								terminal_outs.clear();
+								terminal_output_success(commands[0],terminal_outs);
+
+								break;
+							}
+
+
+							case BLOCK:
+							{
+								/*check if the client has logged in */
+								if(this->login_status != 1)
+								{
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								break;
+							}
+
+							case UNBLOCK:
+							{
+								/*check if the client has logged in */
+								if(this->login_status != 1)
+								{
+									terminal_output_fail(commands[0]);
+									continue;
+								}
 
 								break;
 							}
 
 							case EXIT:
 							{
+								if(this->login_status == 1)
+								{
+									this->send_msg(this->server_fd, commands[0]);
+								}
+								else
+								{
+									this->exit_status = 1;
+									/*out put status to terminal*/
+									terminal_outs.clear();
+									terminal_output_success(commands[0],terminal_outs);
+								}
 
 								break;
 							}
@@ -268,6 +385,20 @@ int ClientHost::client_start()
 								update_local_clients_map(msgs_recvd);
 								break;
 							}
+
+							case EXIT:
+							{
+								this->login_status = 0;
+								/*close socket*/
+								FD_CLR(sock_index, &master_list);
+								close(this->server_fd);
+								this->exit_status = 1;
+
+								/*out put status to terminal*/
+								terminal_outs.clear();
+								terminal_output_success(commands[0],terminal_outs);
+								break;
+							}
 						}
 					}
 					else
@@ -280,6 +411,8 @@ int ClientHost::client_start()
 		}//End of select positive
 
 	}//end of while loop
+
+	return 1;
 }
 
 int ClientHost::connect_to_server(std::string &server_ip, int server_port, int client_port)
@@ -339,7 +472,7 @@ int ClientHost::recv_msg(int server_fd, std::string &msgs_recvd)
 
 	if(recv(server_fd, buffer, BUFFER_SIZE, 0) >= 0){
 		msgs_recvd = std::string(buffer);
-		printf("Server responded: %s", buffer);
+		printf("Server responded: %s\n", buffer);
 		fflush(stdout);
 	}else
 	{

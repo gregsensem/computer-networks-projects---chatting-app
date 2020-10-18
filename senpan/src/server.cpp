@@ -136,7 +136,7 @@ int server(int port)
                             case AUTHOR:
                             {
                                 terminal_outs.clear();
-                                std::string terminal_out = "I,senpan, have read and understood the course academic integrity policy.";
+								std::string terminal_out = "I, senpan, have read and understood the course academic integrity policy.";
                                 terminal_outs.push_back(terminal_out);
                                 terminal_output_success(commands[0], terminal_outs);
                                 break;
@@ -243,9 +243,18 @@ int server(int port)
                                     cmd_sec_msg_parser(client_msg_buff, payload);
                                     std::cout << "message from" << client_ip << "to:" << dest_ip << std::endl << payload <<std::endl;
                                     
-                                    if(send_msg(dest_fd, payload) != 0)
+                                    /*if the destination client is loggedin, send the message*/
+                                    if(clients_list.get_client_by_fd(dest_fd).get_status() == "LOGIN")
                                     {
-                                        std::cout << "fail to relay messages" << std::endl;
+                                        if(send_msg(dest_fd, payload) != 0)
+                                        {
+                                            std::cout << "fail to relay messages" << std::endl;
+                                        }
+                                    }else
+                                    {
+                                        std::string buffer_msg = client_ip + ' ' + payload;
+                                        /* the client is logged out, buffer the messages */
+                                        clients_list.get_client_by_fd(dest_fd).add_buffer_msgs(buffer_msg);
                                     }
 
                                     break;
@@ -254,7 +263,6 @@ int server(int port)
                                 case SENDHSTNAM:
                                 {
                                     Client& c = clients_list.get_client_by_fd(sock_index);
-                                    std::cout << client_msgs[1] << std::endl; 
                                     c.set_hostname(client_msgs[1]);
                                     std::cout << "Received and updated client hostname!" << std::endl;
                                     std::cout << c.get_hostname() << std::endl;
@@ -282,6 +290,25 @@ int server(int port)
                                 {
                                     std::string login_clients = "REFRESH " + clients_list.get_clientslist_str();
                                     send_msg(sock_index, login_clients);
+
+                                    break;
+                                }
+
+                                case LOGOUT:
+                                {
+                                    Client& c = clients_list.get_client_by_fd(sock_index);
+                                    c.set_status("LOGOUT");
+                                    break;
+                                }
+
+                                case EXIT:
+                                {
+                                    /*inform clietn*/
+                                    send_msg(sock_index, "EXIT");
+                                    /*remove from clients list*/
+                                    clients_list.remove(sock_index);
+                                    /*remove from master fd list*/
+                                    FD_CLR(sock_index, &master_list);
 
                                     break;
                                 }

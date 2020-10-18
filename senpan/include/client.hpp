@@ -15,12 +15,13 @@ private:
 int server_fd;
 int port;
 int login_status;
+int exit_status;
 std::unordered_map<std::string,Client> local_clients_map;
 
 public:
 ClientHost(){};
-ClientHost(int port_) : port(port_), login_status(0) {};
-
+ClientHost(int port_) : port(port_), login_status(0), exit_status(0) {};
+~ClientHost();
 int client_start();
 int connect_to_server(std::string &server_ip, int server_port, int client_port);
 int send_msg(int server_socketfd, const std::string &msg);
