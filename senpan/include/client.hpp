@@ -3,9 +3,9 @@
 
 #include "../include/common.hpp"
 #define TRUE 1
-#define CMD_SIZE 100
-#define MSG_SIZE 256
-#define BUFFER_SIZE 256
+#define CMD_SIZE 1024
+#define MSG_SIZE 1024
+#define BUFFER_SIZE 1024
 #define STDIN 0
 
 

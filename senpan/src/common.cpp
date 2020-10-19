@@ -22,7 +22,6 @@ std::unordered_map<std::string, Instructions> InstructionMap =
     {"EXIT", Instructions::EXIT}
 };
 
-//refered to stackoverflow solution of splitting string in c++
 std::vector<std::string> split(const std::string &text, char sep) {
   std::vector<std::string> tokens;
   std::size_t start = 0, end = 0;
@@ -358,6 +357,11 @@ std::string ClientsList::get_clientslist_str()
     }
 
     return clientslist_str;
+}
+
+const std::unordered_map<int,Client> ClientsList::get_clientslist()
+{
+    return this->clients_map;
 }
 
 Client& ClientsList::get_client_by_fd(int fd)

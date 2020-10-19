@@ -40,6 +40,13 @@
  */
 int server(int port)
 {
+    /*server messages buffer*/
+    char server_buffer[1024];
+    int start_post = 0;
+    int delimiter_pos = 0;
+    int count = 0;
+    int total = 0;
+
 	int server_socket, head_socket, selret, sock_index, fdaccept=0;
     socklen_t caddr_len;
 	struct sockaddr_in server_addr, client_addr;
@@ -211,25 +218,55 @@ int server(int port)
                     /* Read from existing clients */
                     else{
                         /* Initialize buffer to receieve response */
-                        char *client_msg_buff = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-                        memset(client_msg_buff, '\0', BUFFER_SIZE);
+                        // char *client_msg_buff = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        // memset(client_msg_buff, '\0', BUFFER_SIZE);
 
-                        if(recv(sock_index, client_msg_buff, BUFFER_SIZE, 0) <= 0){
+                        std::string cmd_str;
+                        while((count = recv(sock_index, &server_buffer[total], sizeof(server_buffer) - count, 0)) > 0)
+                        {
+                            total += count;
+                            std::string recvd_msg(server_buffer, total);
+                            delimiter_pos = recvd_msg.find("$$");
+                            if( delimiter_pos == std::string::npos)
+                            {
+                                /*message incomplete, continue while loop*/
+                                continue;
+                            }
+
+                            printf("Server buffer:%s\n", server_buffer);
+
+                            cmd_str = recvd_msg.substr(0,delimiter_pos);
+
+                            /*clear server buffer*/
+                            memset(server_buffer, '\0', sizeof(server_buffer));
+                            total = 0;
+                            delimiter_pos = 0;
+
+                            break;
+                        }
+
+                        if(count <= 0)
+                        {
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
                             /* Remove from watched list */
                             FD_CLR(sock_index, &master_list);
+
+                            continue;
                         }
-                        else {
-                        	//Process incoming data from existing clients here ...
+                                
+
+                            /* whole message received, start handle input*/
+
+                            //Process incoming data from existing clients here ...
                             Client& a = clients_list.get_client_by_fd(sock_index);
 
                             std::string client_ip = a.get_ip();
-                        	printf("\nClient sent me: %s\n", client_msg_buff);
+                        	printf("\nClient sent me: %s\n", cmd_str.c_str());
 
                             /* parse out the command*/
                             std::vector<std::string> client_msgs;
-                            cmd_parser(client_msg_buff, client_msgs);
+                            cmd_parser(cmd_str.c_str(), client_msgs);
                             Instructions client_cmd_enum = InstructionMap.at(client_msgs[0]);
 
                             /* terminal outs*/
@@ -243,8 +280,8 @@ int server(int port)
                                     std::string dest_ip = client_msgs[1];
                                     int dest_fd = clients_list.get_fd_by_ip(dest_ip);
                                     std::string payload;
-                                    cmd_sec_msg_parser(client_msg_buff, payload);
-                                    std::cout << "message from" << client_ip << "to:" << dest_ip << ": " << payload <<std::endl;
+                                    cmd_sec_msg_parser(cmd_str.c_str(), payload);
+                                    // std::cout << "message from" << client_ip << "to:" << dest_ip << ": " << payload <<std::endl;
                                     
                                     /*if the destination client is loggedin, send the message*/
                                     if(clients_list.get_client_by_fd(dest_fd).get_status() == "LOGIN")
@@ -297,6 +334,55 @@ int server(int port)
                                     break;
                                 }
 
+                                case BROADCAST:
+                                {
+                                    /*parse out the payload message*/
+                                    std::string payload;
+                                    cmd_first_msg_parser(cmd_str.c_str(), payload);
+
+                                    std::string relayed = std::string("RELAYED");
+
+                                    /*iterate through each client in the clientlist*/
+                                    for(auto it : clients_list.get_clientslist())
+                                    {
+                                        if((it.second.get_status() == "LOGIN") && (it.first != sock_index))
+                                        {
+                                            /*broadcast message to this client*/
+
+                                            std::string relayed_msg = "SEND" + ' ' + client_ip + ' ' + payload;
+
+                                            
+                                            std::string msg_to_dest = "SEND " + client_ip + ' ' + payload;
+                                            if(send_msg(it.first, msg_to_dest) != 0)
+                                            {
+                                                terminal_output_fail(relayed);
+                                            }
+                                        }
+                                        else if(it.second.get_status() == "LOGOUT")
+                                        {
+                                            /*buffer message to this client*/
+                                            std::string buffer_msg = client_ip + ' ' + payload;
+                                            /* the client is logged out, buffer the messages */
+                                            clients_list.get_client_by_fd(it.first).add_buffer_msgs(buffer_msg);
+                                        }
+                                    }
+
+                                     /*terminal out success*/
+                                    terminal_outputs.clear();
+                                    char from_to_buff[256];
+                                    std::string broadcast_ip = "255.255.255.255";
+                                    int from_to_buff_len = snprintf(from_to_buff, sizeof(from_to_buff), "msg from:%s, to:%s", client_ip.c_str(), broadcast_ip.c_str());
+                                    std::string from_to = std::string(from_to_buff, from_to_buff_len);
+                                    std::string msg = "[msg]:" + payload;
+
+                                    terminal_outputs.push_back(from_to);
+                                    terminal_outputs.push_back(msg);
+
+                                    terminal_output_success(relayed, terminal_outputs);
+                                    
+                                    break;
+                                }
+
                                 case BLOCK:
                                 {
 
@@ -336,9 +422,135 @@ int server(int port)
                                 }
                             }
 
-                        }
+                        
 
-                        free(client_msg_buff);
+
+                        // if(recv(sock_index, client_msg_buff, BUFFER_SIZE, 0) <= 0){
+                        //     close(sock_index);
+                        //     printf("Remote Host terminated connection!\n");
+                        //     /* Remove from watched list */
+                        //     FD_CLR(sock_index, &master_list);
+                        // }
+                        // else {
+
+                        // 	//Process incoming data from existing clients here ...
+                        //     Client& a = clients_list.get_client_by_fd(sock_index);
+
+                        //     std::string client_ip = a.get_ip();
+                        // 	printf("\nClient sent me: %s\n", client_msg_buff);
+
+                        //     /* parse out the command*/
+                        //     std::vector<std::string> client_msgs;
+                        //     cmd_parser(client_msg_buff, client_msgs);
+                        //     Instructions client_cmd_enum = InstructionMap.at(client_msgs[0]);
+
+                        //     /* terminal outs*/
+                        //     std::vector<std::string> terminal_outputs;
+
+                        //     /* swtich to different response according to the command */
+                        //     switch(client_cmd_enum)
+                        //     {
+                        //         case SEND:
+                        //         {
+                        //             std::string dest_ip = client_msgs[1];
+                        //             int dest_fd = clients_list.get_fd_by_ip(dest_ip);
+                        //             std::string payload;
+                        //             cmd_sec_msg_parser(client_msg_buff, payload);
+                        //             std::cout << "message from" << client_ip << "to:" << dest_ip << ": " << payload <<std::endl;
+                                    
+                        //             /*if the destination client is loggedin, send the message*/
+                        //             if(clients_list.get_client_by_fd(dest_fd).get_status() == "LOGIN")
+                        //             {
+                        //                 std::string relayed_msg = "SEND" + ' ' + client_ip + ' ' + payload;
+
+                        //                 std::string relayed = std::string("RELAYED");
+                                        
+                        //                 std::string msg_to_dest = "SEND " + client_ip + ' ' + payload;
+                        //                 if(send_msg(dest_fd, msg_to_dest) != 0)
+                        //                 {
+                        //                     terminal_output_fail(relayed);
+                        //                 }else
+                        //                 {
+                        //                     /*terminal output relay event*/
+                        //                     terminal_outputs.clear();
+                        //                     char from_to_buff[256];
+                        //                     int from_to_buff_len = snprintf(from_to_buff, sizeof(from_to_buff), "msg from:%s, to:%s", client_ip.c_str(), dest_ip.c_str());
+                        //                     std::string from_to = std::string(from_to_buff, from_to_buff_len);
+                        //                     std::string msg = "[msg]:" + payload;
+
+                        //                     terminal_outputs.push_back(from_to);
+                        //                     terminal_outputs.push_back(msg);
+
+                        //                     terminal_output_success(relayed, terminal_outputs);
+                        //                 } 
+                        //             }
+                        //             else
+                        //             {
+                        //                 std::string buffer_msg = client_ip + ' ' + payload;
+                        //                 /* the client is logged out, buffer the messages */
+                        //                 clients_list.get_client_by_fd(dest_fd).add_buffer_msgs(buffer_msg);
+                        //             }
+
+                        //             break;
+                        //         }
+
+                        //         case SENDHSTNAM:
+                        //         {
+                        //             Client& c = clients_list.get_client_by_fd(sock_index);
+                        //             c.set_hostname(client_msgs[1]);
+                        //             std::cout << "Received and updated client hostname!" << std::endl;
+                        //             std::cout << c.get_hostname() << std::endl;
+
+                        //             /*send the updated clients list back to client*/
+                        //             std::string login_clients = "REFRESH " + clients_list.get_clientslist_str();
+                        //             send_msg(sock_index, login_clients);
+                        //             std::cout << "Sent updated clients list to new client!" << std::endl;
+
+                        //             break;
+                        //         }
+
+                        //         case BLOCK:
+                        //         {
+
+                        //             break;
+                        //         }
+
+                        //         case UNBLOCK:
+                        //         {
+                        //             break;
+                        //         }
+
+                        //         case REFRESH:
+                        //         {
+                        //             std::string login_clients = "REFRESH " + clients_list.get_clientslist_str();
+                        //             send_msg(sock_index, login_clients);
+
+                        //             break;
+                        //         }
+
+                        //         case LOGOUT:
+                        //         {
+                        //             Client& c = clients_list.get_client_by_fd(sock_index);
+                        //             c.set_status("LOGOUT");
+                        //             break;
+                        //         }
+
+                        //         case EXIT:
+                        //         {
+                        //             /*inform clietn*/
+                        //             send_msg(sock_index, "EXIT");
+                        //             /*remove from clients list*/
+                        //             clients_list.remove(sock_index);
+                        //             /*remove from master fd list*/
+                        //             FD_CLR(sock_index, &master_list);
+
+                        //             break;
+                        //         }
+                        //     }
+
+                        // }
+
+                        // free(client_msg_buff);
                     }//End of reading from existing client;
                 }//End of checking socket_index
             }//End of for loop of chcking socket index

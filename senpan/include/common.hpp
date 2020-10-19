@@ -44,7 +44,6 @@ enum Instructions{
 
 extern std::unordered_map<std::string, Instructions> InstructionMap;
 
-//refered to stackoverflow solution of splitting string in c++
 std::vector<std::string> split(const std::string &text, char sep);
 
 void cmd_parser(const char * cmd, std::vector<std::string> &cmd_str);
@@ -125,6 +124,8 @@ public:
     void display_login_clients(std::vector<std::string> &terminal_outputs);
 
     std::string get_clientslist_str();
+
+    const std::unordered_map<int,Client> get_clientslist();
 
     Client& get_client_by_fd(int fd);
 

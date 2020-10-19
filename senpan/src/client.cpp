@@ -82,7 +82,7 @@ int ClientHost::client_start()
 						cmd_parser(cmd, commands);
 
 						/*put a copy of cmd by debug*/
-						debug_output(cmd);
+						// debug_output(cmd);
 
 						/*check if command is valid*/
 						if(!is_cmd_valid(commands[0]))
@@ -223,7 +223,7 @@ int ClientHost::client_start()
 								std::string localhostname;
 								get_local_hostname(localhostname);
 								std::string cmd_msgs = "SENDHSTNAM ";
-								send_msg(this->server_fd, cmd_msgs+localhostname);
+								send_msg(this->server_fd, cmd_msgs+localhostname + "$$");
 
 								/*out put status to terminal*/
 								terminal_outs.clear();
@@ -270,7 +270,7 @@ int ClientHost::client_start()
 
 								// std::string msgs;
 								// cmd_msg_parser(cmd, msgs);
-								send_msg(this->server_fd, std::string(cmd));
+								send_msg(this->server_fd, (std::string(cmd) + "$$"));
 
 								break;
 							}
@@ -284,6 +284,17 @@ int ClientHost::client_start()
 									continue;
 								}
 
+								else if(commands.size() < 2)
+								{
+									std::cout << "No messages to send, please input messages after SEND command!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								// std::string msgs;
+								// cmd_msg_parser(cmd, msgs);
+								send_msg(this->server_fd, (std::string(cmd) + "$$"));
+
 								break;
 							}
 							
@@ -296,7 +307,7 @@ int ClientHost::client_start()
 									continue;
 								}
 
-								this->send_msg(this->server_fd, commands[0]);
+								this->send_msg(this->server_fd, commands[0]+"$$");
 
 								break;
 							}
@@ -310,7 +321,7 @@ int ClientHost::client_start()
 									continue;
 								}
 
-								this->send_msg(this->server_fd, commands[0]);
+								this->send_msg(this->server_fd, commands[0] + "$$");
 								usleep(1000);
 								this->login_status = 0;
 								FD_CLR(this->server_fd, &master_list);
@@ -322,7 +333,6 @@ int ClientHost::client_start()
 
 								break;
 							}
-
 
 							case BLOCK:
 							{
@@ -352,7 +362,7 @@ int ClientHost::client_start()
 							{
 								if(this->login_status == 1)
 								{
-									this->send_msg(this->server_fd, commands[0]);
+									this->send_msg(this->server_fd, commands[0] + "$$");
 								}
 								else
 								{
@@ -495,7 +505,17 @@ int ClientHost::send_msg(int server_socketfd, const std::string &msg)
 	const char *msg_cstr = msg.c_str();
 	int len = strlen(msg_cstr);
 
-	if(send(server_socketfd, msg_cstr, len, 0));
+	int sent_size = send(server_socketfd, msg_cstr, len, 0);
+
+	if(sent_size == -1)
+	{
+		std::cout << "client sent message error!" << std::endl;
+	}
+	else
+	{
+		// std::cout << "msg size: " << msg.size() << "sent size: " << sent_size << std::endl;
+	}
+	
 	return 0;
 }
 
