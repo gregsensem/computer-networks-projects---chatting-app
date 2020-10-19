@@ -16,6 +16,7 @@ int server_fd;
 int port;
 int login_status;
 int exit_status;
+
 std::unordered_map<std::string,Client> local_clients_map;
 
 public:

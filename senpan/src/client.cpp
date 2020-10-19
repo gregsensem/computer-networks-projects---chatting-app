@@ -568,7 +568,7 @@ void ClientHost::update_local_clients_map(std::string clientslist_str)
 	{
 		std::vector<std::string> client_info = this->split(clients[i], '|');
 		/*create a new local client*/
-		Client local_client(NULL,client_info[1],std::stoi(client_info[2]),"LOGIN");
+		Client local_client(NULL,client_info[1],std::stoi(client_info[2]),"logged-in");
 		local_client.set_hostname(client_info[0]);
 		/*add new local client to local client map*/
 		local_clients_map[client_info[1]] = local_client;

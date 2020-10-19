@@ -104,7 +104,15 @@ public:
 
     int get_port();
 
+    int get_num_msgs_sent();
+
+    int get_num_msgs_recvd();
+
     void add_buffer_msgs(std::string buffer_msg);
+
+    void increment_sent_msgs_count();
+
+    void increment_recvd_msgs_count();
 
 };
 
@@ -122,6 +130,8 @@ public:
     void sort_clients();
 
     void display_login_clients(std::vector<std::string> &terminal_outputs);
+
+    void display_statistics(std::vector<std::string> &terminal_outputs);
 
     std::string get_clientslist_str();
 

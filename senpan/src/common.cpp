@@ -246,7 +246,7 @@ int send_msg(int server_socketfd, const std::string &msg)
 
 Client::Client(){};
 Client::Client(int socketfd_, std::string ip_, int port_, std::string status_ ) 
-: socketfd(socketfd_), ip(ip_), port(port_), status(status_)
+: socketfd(socketfd_), ip(ip_), port(port_), status(status_), num_msgs_sent(0), num_msgs_recv(0)
 {
     // std::cout << "New client :" << ip << "login!" << std::endl;
 };
@@ -271,6 +271,16 @@ std::string Client::get_hostname()
     return hostname;
 }
 
+int Client::get_num_msgs_sent()
+{
+    return this->num_msgs_sent;
+}
+
+int Client::get_num_msgs_recvd()
+{
+    return this->num_msgs_recv;
+}
+
 void Client::set_hostname(std::string hostname_)
 {
     this->hostname = hostname_;
@@ -290,6 +300,19 @@ void Client::add_buffer_msgs(std::string buffer_msg)
 {
     this->msgs_buffer.push_back(buffer_msg);
 }
+
+void Client::increment_sent_msgs_count()
+{
+    this->num_msgs_sent++;
+}
+
+void Client::increment_recvd_msgs_count()
+{
+    this->num_msgs_recv++;
+}
+
+
+
 
 void ClientsList::add(int fd,  Client client)
 {
@@ -324,7 +347,7 @@ void ClientsList::display_login_clients(std::vector<std::string> &terminal_outpu
 
     for(auto it : clients_vec)
     {
-        if(it.get_status() == "LOGIN")
+        if(it.get_status() == "logged-in")
         {
             char buff[256];
             int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-20s%-8d", i++, it.get_hostname().c_str(), 
@@ -332,6 +355,29 @@ void ClientsList::display_login_clients(std::vector<std::string> &terminal_outpu
 
             terminal_outputs.push_back(std::string(buff, buff_len));
         }
+    }
+}
+
+void ClientsList::display_statistics(std::vector<std::string> &terminal_outputs)
+{
+    int i = 1;
+    sort_clients();
+
+    std::vector<Client> clients_vec;
+    for(auto it : this->clients_map)
+    {
+        clients_vec.push_back(it.second);
+    }
+
+    std::sort(clients_vec.begin(),clients_vec.end());
+
+    for(auto it : clients_vec)
+    {
+        char buff[256];
+        int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-8d%-8d%-8s", 
+                        i++, it.get_hostname().c_str(), it.get_num_msgs_sent(), it.get_num_msgs_recvd(), it.get_status().c_str());
+
+        terminal_outputs.push_back(std::string(buff, buff_len));
     }
 }
 
@@ -349,7 +395,7 @@ std::string ClientsList::get_clientslist_str()
 
     for(auto it : clients_vec)
     {
-        if(it.get_status() == "LOGIN")
+        if(it.get_status() == "logged-in")
         {
             std::string client_str = it.get_hostname() + '|' + it.get_ip() + '|' + std::to_string(it.get_port()) + ' ';
             clientslist_str += client_str;
