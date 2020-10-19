@@ -254,7 +254,20 @@ int ClientHost::client_start()
 									terminal_output_fail(commands[0]);
 									continue;
 								}
-								
+
+								if(!is_ip_valid(commands[1]))
+								{
+									std::cout << "invalid ip!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+								else if (this->local_clients_map.find(commands[1]) == this->local_clients_map.end())
+								{
+									std::cout << "IP address not found in local list!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
 								// std::string msgs;
 								// cmd_msg_parser(cmd, msgs);
 								send_msg(this->server_fd, std::string(cmd));
@@ -399,6 +412,27 @@ int ClientHost::client_start()
 								terminal_output_success(commands[0],terminal_outs);
 								break;
 							}
+
+							case SEND:
+							{
+								/*parse the received messages from client*/
+								std::string from_ip;
+								from_ip = "msg from:" + commands[1];
+
+								std::string msg_content;
+								cmd_sec_msg_parser(msgs_recvd.c_str(), msg_content);
+								msg_content = "[msg]:" + msg_content;
+								
+								/*out put status to terminal*/
+								terminal_outs.clear();
+								terminal_outs.push_back(from_ip);
+								terminal_outs.push_back(msg_content);
+
+								std::string received = "RECEIVED";
+								terminal_output_success(received,terminal_outs);
+								
+								break;
+							}
 						}
 					}
 					else
@@ -474,7 +508,8 @@ int ClientHost::recv_msg(int server_fd, std::string &msgs_recvd)
 		msgs_recvd = std::string(buffer);
 		printf("Server responded: %s\n", buffer);
 		fflush(stdout);
-	}else
+	}
+	else
 	{
 		printf("fail to reveive message from server");
 		fflush(stdout);
@@ -516,7 +551,7 @@ void ClientHost::update_local_clients_map(std::string clientslist_str)
 		Client local_client(NULL,client_info[1],std::stoi(client_info[2]),"LOGIN");
 		local_client.set_hostname(client_info[0]);
 		/*add new local client to local client map*/
-		local_clients_map[client_info[1]+client_info[2]] = local_client;
+		local_clients_map[client_info[1]] = local_client;
 	}
 }
 

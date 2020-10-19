@@ -44,7 +44,7 @@ void cmd_parser(const char * cmd, std::vector<std::string> &cmd_str)
     cmd_str = split(s, ' ');
 }
 
-void cmd_first_msg_parser(char *cmd, std::string &msgs)
+void cmd_first_msg_parser(const char *cmd, std::string &msgs)
 {
     std::string s(cmd);
     //remove the newline character at the end of the line
@@ -56,16 +56,17 @@ void cmd_first_msg_parser(char *cmd, std::string &msgs)
     int count = 0;
     char sep = ' ';
     while ((end = s.find(sep, start)) != std::string::npos) {
+        count++;
+        start = end + 1;
+
         if(count == 1){
             msgs = s.substr(start, std::string::npos);
             return;
         }
-        count++;
-        start = end + 1;
     }
 }
 
-void cmd_sec_msg_parser(char *cmd, std::string &msgs)
+void cmd_sec_msg_parser(const char *cmd, std::string &msgs)
 {
     std::string s(cmd);
     //remove the newline character at the end of the line
@@ -77,12 +78,13 @@ void cmd_sec_msg_parser(char *cmd, std::string &msgs)
     int count = 0;
     char sep = ' ';
     while ((end = s.find(sep, start)) != std::string::npos) {
+        count++;
+        start = end + 1;
+        
         if(count == 2){
             msgs = s.substr(start, std::string::npos);
             return;
         }
-        count++;
-        start = end + 1;
     }
 }
 
@@ -241,6 +243,7 @@ int send_msg(int server_socketfd, const std::string &msg)
 	if(send(server_socketfd, msg_cstr, len, 0));
 	return 0;
 }
+
 
 Client::Client(){};
 Client::Client(int socketfd_, std::string ip_, int port_, std::string status_ ) 

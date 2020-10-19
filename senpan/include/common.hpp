@@ -49,9 +49,9 @@ std::vector<std::string> split(const std::string &text, char sep);
 
 void cmd_parser(const char * cmd, std::vector<std::string> &cmd_str);
 
-void cmd_first_msg_parser(char *cmd, std::string &msgs);
+void cmd_first_msg_parser(const char *cmd, std::string &msgs);
 
-void cmd_sec_msg_parser(char *cmd, std::string &msgs);
+void cmd_sec_msg_parser(const char *cmd, std::string &msgs);
 
 void terminal_output_success(std::string &cmd, std::vector<std::string> &outputs);
 

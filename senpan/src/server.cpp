@@ -232,6 +232,9 @@ int server(int port)
                             cmd_parser(client_msg_buff, client_msgs);
                             Instructions client_cmd_enum = InstructionMap.at(client_msgs[0]);
 
+                            /* terminal outs*/
+                            std::vector<std::string> terminal_outputs;
+
                             /* swtich to different response according to the command */
                             switch(client_cmd_enum)
                             {
@@ -241,16 +244,35 @@ int server(int port)
                                     int dest_fd = clients_list.get_fd_by_ip(dest_ip);
                                     std::string payload;
                                     cmd_sec_msg_parser(client_msg_buff, payload);
-                                    std::cout << "message from" << client_ip << "to:" << dest_ip << std::endl << payload <<std::endl;
+                                    std::cout << "message from" << client_ip << "to:" << dest_ip << ": " << payload <<std::endl;
                                     
                                     /*if the destination client is loggedin, send the message*/
                                     if(clients_list.get_client_by_fd(dest_fd).get_status() == "LOGIN")
                                     {
-                                        if(send_msg(dest_fd, payload) != 0)
+                                        std::string relayed_msg = "SEND" + ' ' + client_ip + ' ' + payload;
+
+                                        std::string relayed = std::string("RELAYED");
+                                        
+                                        std::string msg_to_dest = "SEND " + client_ip + ' ' + payload;
+                                        if(send_msg(dest_fd, msg_to_dest) != 0)
                                         {
-                                            std::cout << "fail to relay messages" << std::endl;
-                                        }
-                                    }else
+                                            terminal_output_fail(relayed);
+                                        }else
+                                        {
+                                            /*terminal output relay event*/
+                                            terminal_outputs.clear();
+                                            char from_to_buff[256];
+                                            int from_to_buff_len = snprintf(from_to_buff, sizeof(from_to_buff), "msg from:%s, to:%s", client_ip.c_str(), dest_ip.c_str());
+                                            std::string from_to = std::string(from_to_buff, from_to_buff_len);
+                                            std::string msg = "[msg]:" + payload;
+
+                                            terminal_outputs.push_back(from_to);
+                                            terminal_outputs.push_back(msg);
+
+                                            terminal_output_success(relayed, terminal_outputs);
+                                        } 
+                                    }
+                                    else
                                     {
                                         std::string buffer_msg = client_ip + ' ' + payload;
                                         /* the client is logged out, buffer the messages */
