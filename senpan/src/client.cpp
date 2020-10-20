@@ -87,7 +87,6 @@ int ClientHost::client_start()
 						/*check if command is valid*/
 						if(!is_cmd_valid(commands[0]))
 						{
-
 							std::cout << commands[0] << " : Invlid command!" << std::endl;
 							continue;
 						}
@@ -336,12 +335,51 @@ int ClientHost::client_start()
 
 							case BLOCK:
 							{
+								//debug 
+								debug_output(cmd);
 								/*check if the client has logged in */
 								if(this->login_status != 1)
 								{
 									terminal_output_fail(commands[0]);
 									continue;
 								}
+								/*check if input is valid*/
+								if(commands.size() != 2)
+								{
+									std::cout << "invalid parameter!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+								
+								/* check if ip address is valid */
+								if(!is_ip_valid(commands[1]))
+								{
+									std::cout << "invalid ip address!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;										
+								}
+
+								/* check if ip address is in local list */
+								if (this->local_clients_map.find(commands[1]) == this->local_clients_map.end())
+								{
+									std::cout << "IP address not found in local list!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								/* check if ip address has already been blocked */
+								if (this->local_block_list.find(commands[1]) != this->local_block_list.end())
+								{
+									std::cout << "IP address has already been blocked!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+								
+								/*ask server to block this ip and add to local block list */
+								if(this->send_msg(this->server_fd, std::string(cmd)+"$$") == 0)
+								{
+									this->local_block_list.emplace(commands[1]);
+								}	
 
 								break;
 							}
@@ -354,6 +392,44 @@ int ClientHost::client_start()
 									terminal_output_fail(commands[0]);
 									continue;
 								}
+
+								/*check if input is valid*/
+								if(commands.size() != 2)
+								{
+									std::cout << "invalid parameter!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+								
+								/* check if ip address is valid */
+								if(!is_ip_valid(commands[1]))
+								{
+									std::cout << "invalid ip address!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;										
+								}
+
+								/* check if ip address is in local list */
+								if (this->local_clients_map.find(commands[1]) == this->local_clients_map.end())
+								{
+									std::cout << "IP address not found in local list!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								/* check if ip address is blocked */
+								if (this->local_block_list.find(commands[1]) == this->local_block_list.end())
+								{
+									std::cout << "IP address has not been blocked!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								/*ask server to unblock this ip and erase from local block list */
+								if(this->send_msg(this->server_fd, std::string(cmd)+"$$") == 0)
+								{
+									this->local_block_list.erase(commands[1]);
+								}	
 
 								break;
 							}
@@ -510,6 +586,8 @@ int ClientHost::send_msg(int server_socketfd, const std::string &msg)
 	if(sent_size == -1)
 	{
 		std::cout << "client sent message error!" << std::endl;
+
+		return -1;
 	}
 	else
 	{

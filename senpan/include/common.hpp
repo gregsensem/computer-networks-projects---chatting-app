@@ -86,6 +86,7 @@ private:
 
     std::unordered_set<std::string> block_list;
     std::vector<std::string> msgs_buffer;
+
 public:
     Client();
     Client(int socketfd_, std::string ip_, int port_, std::string status_ );
@@ -114,6 +115,14 @@ public:
 
     void increment_recvd_msgs_count();
 
+    void add_to_block_list(std::string ip);
+
+    void remove_from_block_list(std::string ip);
+
+    bool is_blocked(std::string ip);
+
+    std::unordered_set<std::string> return_blocklist();
+
 };
 
 class ClientsList
@@ -132,6 +141,8 @@ public:
     void display_login_clients(std::vector<std::string> &terminal_outputs);
 
     void display_statistics(std::vector<std::string> &terminal_outputs);
+
+    void display_block_list(std::string client_ip, std::vector<std::string> &terminal_outputs);
 
     std::string get_clientslist_str();
 

@@ -18,6 +18,7 @@ int login_status;
 int exit_status;
 
 std::unordered_map<std::string,Client> local_clients_map;
+std::unordered_set<std::string> local_block_list;
 
 public:
 ClientHost(){};

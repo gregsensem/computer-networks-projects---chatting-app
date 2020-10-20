@@ -109,7 +109,7 @@ void terminal_output_fail(std::string &cmd)
 void debug_output(const char * buffer)
 {
     FILE *fp;
-    if((fp = fopen("/home/peter/Documents/CSE589/PA1/debug_sp_file1.log", "a")) == NULL)
+    if((fp = fopen("/tmp/debug_sp_file1.log", "a")) == NULL)
     {
         ret_log = -100;
     }
@@ -311,7 +311,32 @@ void Client::increment_recvd_msgs_count()
     this->num_msgs_recv++;
 }
 
+void Client::add_to_block_list(std::string ip)
+{
+    this->block_list.emplace(ip);
+}
 
+void Client::remove_from_block_list(std::string ip)
+{
+    this->block_list.erase(ip);
+}
+
+bool Client::is_blocked(std::string ip)
+{
+    if(this->block_list.find(ip) == this->block_list.end())
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+std::unordered_set<std::string> Client::return_blocklist()
+{
+    return this->block_list;
+}
 
 
 void ClientsList::add(int fd,  Client client)
@@ -381,6 +406,32 @@ void ClientsList::display_statistics(std::vector<std::string> &terminal_outputs)
     }
 }
 
+void ClientsList::display_block_list(std::string client_ip, std::vector<std::string> &terminal_outputs)
+{
+    int fd = this->get_fd_by_ip(client_ip);
+    std::unordered_set<std::string> client_block_set = this->get_client_by_fd(fd).return_blocklist();
+
+    std::vector<Client> clients_vec;
+
+    for(auto blocked_ip : client_block_set)
+    {
+        int blocked_fd = this->get_fd_by_ip(blocked_ip);
+        clients_vec.push_back(this->get_client_by_fd(blocked_fd));
+    }
+
+    std::sort(clients_vec.begin(),clients_vec.end());
+
+    int i = 1;
+    for(auto it : clients_vec)
+    {
+        char buff[256];
+        int buff_len = snprintf(buff, sizeof(buff), "%-5d%-35s%-20s%-8d", i++, it.get_hostname().c_str(), 
+                                it.get_ip().c_str(), it.get_port());
+
+        terminal_outputs.push_back(std::string(buff, buff_len));
+    }
+}
+
 std::string ClientsList::get_clientslist_str()
 {
     std::string clientslist_str;
@@ -417,5 +468,12 @@ Client& ClientsList::get_client_by_fd(int fd)
 
 int ClientsList::get_fd_by_ip(std::string ip)
 {
-    return ip_to_fd[ip];
+    if(this->ip_to_fd.find(ip) == this->ip_to_fd.end())
+    {
+        return -1;
+    }
+    else
+    {
+        return this->ip_to_fd[ip];
+    }
 }
