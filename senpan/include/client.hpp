@@ -22,7 +22,7 @@ std::unordered_set<std::string> local_block_list;
 
 public:
 ClientHost(){};
-ClientHost(int port_) : port(port_), login_status(0), exit_status(0) {};
+ClientHost(int port_) : port(port_), login_status(-1), exit_status(0) {};
 ~ClientHost();
 int client_start();
 int connect_to_server(std::string &server_ip, int server_port, int client_port);

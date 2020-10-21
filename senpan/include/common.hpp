@@ -111,6 +111,10 @@ public:
 
     void add_buffer_msgs(std::string buffer_msg);
 
+    void get_buffer_msgs(std::vector<std::string> &buffer_msgs);
+
+    void clear_buffer_msgs();
+
     void increment_sent_msgs_count();
 
     void increment_recvd_msgs_count();

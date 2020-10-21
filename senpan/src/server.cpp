@@ -186,8 +186,7 @@ int server(int port)
                             case BLOCKED:
                             {
                                 // debug
-                                debug_output(cmd);
-                                
+
                                 /*check if input is valid*/
 								if(commands.size() != 2)
 								{
@@ -345,7 +344,7 @@ int server(int port)
                                             terminal_output_success(relayed, terminal_outputs);
                                         } 
                                     }
-                                    else
+                                    else if(clients_list.get_client_by_fd(dest_fd).get_status() == "logged-out")
                                     {
                                         std::string buffer_msg = client_ip + ' ' + payload;
                                         /* the client is logged out, buffer the messages */
@@ -449,6 +448,62 @@ int server(int port)
                             {
                                 std::string login_clients = "REFRESH " + clients_list.get_clientslist_str();
                                 send_msg(sock_index, login_clients);
+
+                                break;
+                            }
+
+                            case LOGIN:
+                            {
+                                Client& c = clients_list.get_client_by_fd(sock_index);
+                                c.set_status("logged-in");
+
+                                std::cout << "set client status to logged-in" << std::endl;
+
+                                /*check if any message in the buffer to send after the client re-login*/
+                                std::vector<std::string> buffer_msgs;
+                                c.get_buffer_msgs(buffer_msgs);
+
+                                std::cout << buffer_msgs.empty() << std::endl;
+
+                                if(!buffer_msgs.empty())
+                                {
+                                    for(auto msg : buffer_msgs)
+                                    {
+                                        send_msg(sock_index,"SEND " + msg);
+                                        /*terminal out put relay success*/
+                                        std::vector<std::string> buffer_tokens;
+                                        cmd_parser(msg.c_str(), buffer_tokens);
+                                        std::string from_ip = buffer_tokens[0];
+                                        std::string to_ip = client_ip;
+                                        std::string buffer_msg;
+                                        cmd_first_msg_parser(msg.c_str(), buffer_msg);
+                                        
+                                        /*terminal out success*/
+                                        terminal_outputs.clear();
+                                        char from_to_buff[256];
+                                        int from_to_buff_len = snprintf(from_to_buff, sizeof(from_to_buff), "msg from:%s, to:%s", from_ip.c_str(), to_ip.c_str());
+                                        std::string from_to = std::string(from_to_buff, from_to_buff_len);
+                                        std::string msg_body = "[msg]:" + buffer_msg;
+
+                                        terminal_outputs.push_back(from_to);
+                                        terminal_outputs.push_back(msg_body);
+
+                                        std::string relayed = std::string("RELAYED");
+                                        terminal_output_success(relayed, terminal_outputs);
+
+                                        usleep(100000);
+                                    }
+
+                                    /*clear the message in the buffer*/
+                                    c.clear_buffer_msgs();
+
+                                    std::cout<<"cleared buffer message"<<std::endl;
+                                }
+                                /*inform the client login success*/
+                                std::cout << "before sending the client LOGIN" << std::endl;
+                                usleep(100000);
+                                send_msg(sock_index,"LOGIN");
+                                std::cout<<"sent LOGIN to client"<<std::endl;
 
                                 break;
                             }

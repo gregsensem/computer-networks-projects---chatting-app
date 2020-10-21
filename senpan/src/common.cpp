@@ -109,7 +109,7 @@ void terminal_output_fail(std::string &cmd)
 void debug_output(const char * buffer)
 {
     FILE *fp;
-    if((fp = fopen("/tmp/debug_sp_file1.log", "a")) == NULL)
+    if((fp = fopen("/tmp/debug_sp_file5.log", "a")) == NULL)
     {
         ret_log = -100;
     }
@@ -299,6 +299,16 @@ int Client::get_port()
 void Client::add_buffer_msgs(std::string buffer_msg)
 {
     this->msgs_buffer.push_back(buffer_msg);
+}
+
+void Client::get_buffer_msgs(std::vector<std::string> &buffer_msgs)
+{
+    buffer_msgs = this->msgs_buffer;
+}
+
+void Client::clear_buffer_msgs()
+{
+    this->msgs_buffer.clear();
 }
 
 void Client::increment_sent_msgs_count()

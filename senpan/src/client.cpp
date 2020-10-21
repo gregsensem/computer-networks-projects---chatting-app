@@ -48,8 +48,8 @@ int ClientHost::client_start()
 		if(this->exit_status)
 			return 0;
 
-		printf("\n[PA1-Client@CSE489/589]$ ");
-		fflush(stdout);
+		// printf("\n[PA1-Client@CSE489/589]$ ");
+		// fflush(stdout);
 
 		memcpy(&watch_list, &master_list, sizeof(master_list));
 
@@ -82,8 +82,8 @@ int ClientHost::client_start()
 						cmd_parser(cmd, commands);
 
 						/*put a copy of cmd by debug*/
-						// debug_output(cmd);
-
+						//debug_output(cmd);
+						
 						/*check if command is valid*/
 						if(!is_cmd_valid(commands[0]))
 						{
@@ -203,30 +203,37 @@ int ClientHost::client_start()
 									continue;
 								}
 								
-								this->server_fd = connect_to_server(commands[1],host_port_num, port);
-								if(this->server_fd < 0)
+								if(this->login_status == -1)
 								{
-									std::cout << "failed to connect to server" << std::endl;
-									terminal_output_fail(commands[0]);
-									continue;
+									this->server_fd = connect_to_server(commands[1],host_port_num, port);
+									if(this->server_fd < 0)
+									{
+										std::cout << "failed to connect to server" << std::endl;
+										terminal_output_fail(commands[0]);
+										continue;
+									}
+
+									/* Register the listening socket */
+									FD_SET(this->server_fd, &master_list);
+									head_socket = this->server_fd;
+									
+									/*change login status*/
+									this->login_status = 1;
+
+									/*send host name to server*/
+									std::string localhostname;
+									get_local_hostname(localhostname);
+									std::string cmd_msgs = "SENDHSTNAM ";
+									send_msg(this->server_fd, cmd_msgs+localhostname + "$$");
+
+									/*out put status to terminal*/
+									terminal_outs.clear();
+									terminal_output_success(commands[0],terminal_outs);
 								}
-
-								/* Register the listening socket */
-								FD_SET(this->server_fd, &master_list);
-								head_socket = this->server_fd;
-								
-								/*change login status*/
-								this->login_status = 1;
-
-								/*send host name to server*/
-								std::string localhostname;
-								get_local_hostname(localhostname);
-								std::string cmd_msgs = "SENDHSTNAM ";
-								send_msg(this->server_fd, cmd_msgs+localhostname + "$$");
-
-								/*out put status to terminal*/
-								terminal_outs.clear();
-								terminal_output_success(commands[0],terminal_outs);
+								else if(this->login_status == 0)
+								{
+									this->send_msg(this->server_fd, "LOGIN$$");
+								}
 
 								break;
 							}
@@ -270,6 +277,8 @@ int ClientHost::client_start()
 								// std::string msgs;
 								// cmd_msg_parser(cmd, msgs);
 								send_msg(this->server_fd, (std::string(cmd) + "$$"));
+                                
+								usleep(100000);
 
 								break;
 							}
@@ -323,8 +332,8 @@ int ClientHost::client_start()
 								this->send_msg(this->server_fd, commands[0] + "$$");
 								usleep(1000);
 								this->login_status = 0;
-								FD_CLR(this->server_fd, &master_list);
-								close(this->server_fd);
+								// FD_CLR(this->server_fd, &master_list);
+								// close(this->server_fd);
 
 								/*out put status to terminal*/
 								terminal_outs.clear();
@@ -335,8 +344,6 @@ int ClientHost::client_start()
 
 							case BLOCK:
 							{
-								//debug 
-								debug_output(cmd);
 								/*check if the client has logged in */
 								if(this->login_status != 1)
 								{
@@ -478,9 +485,19 @@ int ClientHost::client_start()
 						/*switch into corresponding commands*/
 						switch(command_enum)
 						{
+							case LOGIN:
+							{
+								std::cout << "LOGIN ACTIVATED" << std::endl;
+								this->login_status = 1;
+								/*out put status to terminal*/
+								terminal_outs.clear();
+								terminal_output_success(commands[0],terminal_outs);
+								break;
+							}
+
 							case REFRESH:
 							{
-								std::cout << "Refresh this from server:" << msgs_recvd << std::endl;
+								// std::cout << "Refresh this from server:" << msgs_recvd << std::endl;
 								update_local_clients_map(msgs_recvd);
 								break;
 							}
@@ -517,6 +534,7 @@ int ClientHost::client_start()
 								std::string received = "RECEIVED";
 								terminal_output_success(received,terminal_outs);
 								
+								//debug_output(msg_content.c_str());
 								break;
 							}
 						}
