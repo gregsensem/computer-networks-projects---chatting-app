@@ -19,7 +19,10 @@ std::unordered_map<std::string, Instructions> InstructionMap =
     {"BLOCK", Instructions::BLOCK},
     {"UNBLOCK", Instructions::UNBLOCK},
     {"LOGOUT", Instructions::LOGOUT},
-    {"EXIT", Instructions::EXIT}
+    {"EXIT", Instructions::EXIT},
+    {"SENDFILE", Instructions::SENDFILE},
+    {"P2PREQ", Instructions::P2PREQ},
+    {"P2PRES", Instructions::P2PRES}
 };
 
 std::vector<std::string> split(const std::string &text, char sep) {

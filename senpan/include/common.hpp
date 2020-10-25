@@ -38,7 +38,10 @@ enum Instructions{
     BLOCK,
     UNBLOCK,
     LOGOUT,
-    EXIT
+    EXIT,
+    SENDFILE,
+    P2PREQ,
+    P2PRES
 };
 
 

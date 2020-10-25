@@ -16,6 +16,8 @@ int server_fd;
 int port;
 int login_status;
 int exit_status;
+std::string p2p_dest_ip;
+std::string p2p_filename;
 
 std::unordered_map<std::string,Client> local_clients_map;
 std::unordered_set<std::string> local_block_list;
@@ -26,6 +28,7 @@ ClientHost(int port_) : port(port_), login_status(-1), exit_status(0) {};
 ~ClientHost();
 int client_start();
 int connect_to_server(std::string &server_ip, int server_port, int client_port);
+int connect_to_peer(std::string &dest_ip, int dest_port);
 int send_msg(int server_socketfd, const std::string &msg);
 int recv_msg(int server_fd, std::string &msgs_recvd);
 int broadcast_msg();

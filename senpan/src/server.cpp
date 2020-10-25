@@ -526,6 +526,37 @@ int server(int port)
 
                                 break;
                             }
+
+                            case P2PREQ:
+                            {
+                                /*parse dest ip*/
+                                std::string dest_ip = client_msgs[1];
+                                int dest_fd = clients_list.get_fd_by_ip(dest_ip);
+
+                                /*parse file name*/
+                                std::string file_name;
+                                cmd_sec_msg_parser(cmd_str.c_str(), file_name);
+
+                                /*find src ip*/
+                                std::string src_ip = clients_list.get_client_by_fd(sock_index).get_ip();
+
+                                send_msg( dest_fd, "P2PREQ " + src_ip + ' ' +  file_name);
+
+                                break;
+                            }
+ 
+                            case P2PRES:
+                            {
+                                /*parse the src ip*/
+                                std::string src_ip = client_msgs[1];
+                                int src_fd = clients_list.get_fd_by_ip(src_ip);
+
+                                /*parse the dest port*/
+                                std::string dest_port = client_msgs[2];
+
+                                send_msg( src_fd, "P2PRES " + dest_port);
+                                break;
+                            }
                         }
 
                         // free(client_msg_buff);

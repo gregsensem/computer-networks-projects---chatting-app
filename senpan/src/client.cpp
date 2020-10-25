@@ -457,9 +457,58 @@ int ClientHost::client_start()
 
 								break;
 							}
+						
+							case SENDFILE:
+							{
+								/*check if cmd is valid */
+								if(commands.size() < 2)
+								{
+									std::cout << "No IP address found, please input IP address of the receiver!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+								else if(commands.size() < 3)
+								{
+									std::cout << "No file to send, please input messages after SENDFILE command!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+
+								std::string dest_ip = commands[1];
+								this->p2p_dest_ip = dest_ip;
+
+								if(!is_ip_valid(dest_ip))
+								{
+									std::cout << "invalid ip!" << std::endl;
+									terminal_output_fail(commands[0]);
+									continue;
+								}
+								else if (this->local_clients_map.find(dest_ip) == this->local_clients_map.end())
+								{
+									std::cout << "IP address not found in local list!" << std::endl;
+									terminal_output_fail(commands[0]);
+
+									continue;
+								}
+
+								int dest_port = this->local_clients_map.at(dest_ip).get_port();
+								std::cout << "the dest client's port is : " << dest_port << std::endl;
+
+								std::string file_name;
+								cmd_sec_msg_parser(cmd, file_name);
+								this->p2p_filename = file_name;
+
+								send_msg(this->server_fd, ("P2PREQ " + dest_ip + ' ' + file_name + "$$"));
+
+								terminal_outs.clear();
+								terminal_output_success(commands[0], terminal_outs);
+
+								break;
+							}
 						}//end of switch
 						
-					}else if(sock_index == this->server_fd)
+					}
+					else if(sock_index == this->server_fd)
 					{
 						/*check if any new message from server*/
 						std::string msgs_recvd;
@@ -537,10 +586,151 @@ int ClientHost::client_start()
 								//debug_output(msg_content.c_str());
 								break;
 							}
+						
+							case P2PREQ:
+							{
+								std::string src_ip = commands[1];
+								std::string file_name;
+								cmd_sec_msg_parser(msgs_recvd.c_str(), file_name);
+								
+								/*create a new socket and port for p2p file transfer*/
+								struct sockaddr_in peer_addr, my_addr;
+								bzero(&peer_addr, sizeof(peer_addr));
+								bzero(&my_addr, sizeof(my_addr));
+								socklen_t len = sizeof my_addr;
+								int sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+								if (sockfd == -1) { 
+									printf("failed to create socket\n"); 
+								}else
+								{
+									std::cout << "success on creating new socket" << std::endl;
+								}
+								
+								peer_addr.sin_family = AF_INET; 
+								peer_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+								peer_addr.sin_port = htons(0);
+
+								if ((bind(sockfd, (struct sockaddr *)&peer_addr, sizeof(peer_addr))) != 0) { 
+									perror("bind fail");
+									close(sockfd);
+								}else
+								{
+									std::cout << "success on binding port: " << ntohs(my_addr.sin_port) << std::endl;
+								}
+								
+
+								if (listen(sockfd, 10) == -1) {
+									close(sockfd);
+									perror("failed to listen on the new socket");
+								}else
+								{
+									std::cout << "success on listen on the new socket" << std::endl;
+								}
+								
+
+								getsockname(sockfd, (struct sockaddr *)&my_addr, &len);
+								
+								int localport = ntohs(my_addr.sin_port);
+
+								/*send the new created port to src client*/
+								if(send_msg(this->server_fd, ("P2PRES " + src_ip + ' ' + std::to_string(localport) + "$$")) == -1)
+								{
+									std::cout << "fail to send P2PRES" << std::endl;
+								}
+								else
+								{
+									std::cout << "successfully send P2PRES to server" << std::endl;
+								}
+
+								struct sockaddr_in cli;
+								socklen_t cc = sizeof cli;
+								int accept_fd = accept(sockfd, (struct sockaddr *)&cli, &cc);
+								if(accept_fd < 0){
+									perror("accept fail");
+									close(sockfd);
+									return 0;
+								}
+
+								FILE* fp = fopen(file_name.c_str(), "wb");
+
+								char file_buffer[1024];
+
+								while(true){
+									int recv_len = recv(accept_fd, file_buffer, sizeof file_buffer, 0);
+									if(recv_len <= 0){
+										std::cout << "Finished receiving file" << std::endl;
+										close(sockfd);
+										close(accept_fd);
+										fclose(fp);
+										break;
+									}else{
+										fwrite (file_buffer , sizeof(char), recv_len, fp);
+									}
+								}
+
+								break;
+							}
+						
+							case P2PRES:
+							{
+								/*parse out the dest port*/
+								std::string dest_port_str = commands[1];
+								int dest_port = atoi(dest_port_str.c_str());
+
+								/*send file to destination client*/
+								int filefd = socket(PF_INET, SOCK_STREAM, 0);
+								if(filefd < 0){
+									perror("fail to open a socket");
+								}
+								
+								struct sockaddr_in sin;
+								bzero(&sin, sizeof(sin));
+								sin.sin_family = AF_INET;
+								sin.sin_port = htons(dest_port);
+
+								sin.sin_addr.s_addr = inet_addr(this->p2p_dest_ip.c_str());
+
+								if(connect(filefd, (struct sockaddr *)&sin, sizeof sin) < 0){
+									perror("connect failed");
+									close(filefd);
+								}
+
+								FILE *file_ptr = fopen(this->p2p_filename.c_str(), "rb");
+								if (file_ptr == nullptr) 
+								{
+									perror("Can't open file");
+								return 0;
+								}
+								int len;
+
+								char file_send_buffer[1024];
+								while ((len = fread(file_send_buffer, sizeof(char), sizeof file_send_buffer, file_ptr)) > 0) 
+								{
+									if (ferror(file_ptr))
+									{
+										perror("Read File Error");
+										fclose(file_ptr);
+										close(filefd);
+										return 0;
+									}
+									
+									if (send(filefd, file_send_buffer, len, 0) == -1)
+									{
+										perror("Can't send file");
+									}
+								}
+
+								fclose(file_ptr);
+								close(filefd);
+
+								break;
+							}
 						}
 					}
 					else
 					{
+						/*receive file from peer client*/
+
 						
 					}
 
@@ -592,6 +782,35 @@ int ClientHost::connect_to_server(std::string &server_ip, int server_port, int c
 	}
 	
     return fdsocket;
+}
+
+int ClientHost::connect_to_peer(std::string &dest_ip, int dest_port)
+{
+	int p2p_fd = socket(PF_INET, SOCK_STREAM, 0);
+	if(p2p_fd < 0)
+	{
+		perror("can not open a socket");
+		return -1;
+	}
+	
+	struct sockaddr_in sin;
+	bzero(&sin, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(dest_port);
+	// sin.sin_port = htons(60000);
+	sin.sin_addr.s_addr = inet_addr(dest_ip.c_str());
+
+	if(connect(p2p_fd, (struct sockaddr *)&sin, sizeof sin) < 0){
+		perror("connect to peer client failed");
+		close(p2p_fd);
+		return -1;
+	}
+	else
+	{
+		std::cout << "Connect to peer client Success!" << std::endl;
+	}
+	
+    return p2p_fd;
 }
 
 int ClientHost::send_msg(int server_socketfd, const std::string &msg)
