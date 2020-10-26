@@ -1,6 +1,10 @@
 /**
  * @senpan_assignment1
- * @author  SEN PAN <senpan@buffalo.edu>
+ * 
+ * @author
+ * 	Sai Venigalla 	50338187  	<srisaiya@buffalo.edu>
+ * 	Sen Pan 		50321231 	<senpan@buffalo.edu>
+ * 
  * @version 1.0
  *
  * @section LICENSE
