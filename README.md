@@ -37,4 +37,8 @@
 | EXIT            | NA |Logout from the server and terminate the application |
 
 ### Example:
-<img src="https://github.com/gregsensem/camera-calibration/raw/master/example.png" width="50%" height="50%">
+<img src="https://github.com/gregsensem/computer-networks-projects---chatting-app/blob/f94a7aa5714dd060e677299bdada4113e75b2ff4/server&clients.png" width="50%" height="50%">
+
+### References:
+1. "Beej's Guide to Network Programming"
+2. "computer network a top down approach"
