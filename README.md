@@ -1,8 +1,7 @@
 # computer-networks-projects---chatting-app
-* This is a course project for modern comeputer network. 
-* The project need to implement the client and server components of a text chat application, 
-  consists of on chat server and multiple chat clients over TCP connections. 
-* The app achieves message sending, broadcasting, buffering, statistics and P2P file transfer.
+* The project is to implement the client and server components of a text chat application, 
+  which consists of on chat server and multiple chat clients over TCP connections. 
+* The app achieves message sending, broadcasting, buffering, block/unblock, statistics and P2P file transfer.
 * The app is build with vanilla Socket and C++, no other library is used.
 
 
